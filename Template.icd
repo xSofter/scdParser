@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- edited with XMLSpy v2013 (http://www.altova.com) by  () -->
 <SCL xmlns="http://www.iec.ch/61850/2003/SCL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.iec.ch/61850/2003/SCL SCL.xsd" xmlns:ext="http://www.sgepri.sgcc.com.cn" xmlns:IEC_60870_5_104="http://www.sgepri.sgcc.com.cn" xmlns:csg="http://www.csg.cn">
+	<Private type="Substation virtual terminal conection CRC">22B9E621</Private>
 	<Header id="NSR-3620A-DG-N" version="V1.03" revision="V1.03" toolID="NariConfigTool" nameStructure="IEDName"/>
 	<Communication desc="communication">
 		<Private type="portMap">2-A;1-A</Private>

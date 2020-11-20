@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
 
 	int i=0;
 
-	slog_start(SX_LOG_ALWAY, LOG_FILE_EN, LOG_FILE_NAME);
+	slog_start(SX_LOG_ALWAY, LOG_MEM_EN, NULL);
 	rc = scl_parse(xmlFileName, iedName, accessPointName, &sclInfo);
 
 #if 0

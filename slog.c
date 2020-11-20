@@ -183,16 +183,16 @@ static ST_VOID doSlog (LOG_CTRL *lc,
 
 	getCurrentTime(currTime);
 	//修改了源代码logctrl无法输出到日志文件中的问题
-	if (lc->logCtrl && g_lc.logType == LOG_FILE_EN)	/* File Logging enabled		*/
+	if (lc->logCtrl && (g_lc.logType == LOG_FILE_EN) )	/* File Logging enabled		*/
 	{
 		/* Now print the message buffer						*/
 		fprintf (lc->fp,"[%s %s %s %d] %s\n", currTime, sourceFile, functionName, lineNum, msg_buf);
 
 	}
 
-	if (lc->logCtrl && g_lc.logType == LOG_MEM_EN)
+	if (lc->logCtrl && (g_lc.logType == LOG_MEM_EN) )
 	{
-		printf (lc->fp,"[%s %s %d] %s\n", sourceFile, functionName, lineNum, msg_buf);
+		printf ("[%s %s %d] %s\n", sourceFile, functionName, lineNum, msg_buf);
 	}
 
 }

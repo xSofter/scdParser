@@ -249,7 +249,7 @@ extern "C" {
 		/* NOTE: "entityStart" is NOT used if USE_EXPAT defined	*/
 		ST_CHAR *entityStart;			/* start (and simple end)	*/
 		ST_UINT attrCount;			/* start (and simple end)	*/
-		SXD_ATTR_PAIR attr[SX_MAX_ATTRIB];	/* start (and simple end)	*/
+		SXD_ATTR_PAIR attr[SX_MAX_ATTRIB];	/* start (and simple end) 存放该Attribute内容*/
 		/* NOTE: "entityEnd" is NOT used if USE_EXPAT defined	*/
 		ST_CHAR *entityEnd;			/* end				*/
 	} SX_DEC_ELEMENT_INFO;

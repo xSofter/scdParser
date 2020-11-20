@@ -64,7 +64,7 @@ extern "C" {
 
 #define MVL61850_MAX_RPTID_LEN 64
 #define CLNP_MAX_LEN_MAC 12	/* 采用12字节显示,010CCD010000 */
-
+#define MAX_CRC32_LEN 8
 #define MAX_VALKIND_LEN	4	/* Spec, Conf, RO, or Set		*/
 #define MAX_CDC_LEN	50	/* SPS, DPS, etc. (CURVE is longest	*/
 	/* predefined CDC but user may define others)*/
@@ -301,7 +301,7 @@ extern "C" {
 	{
 		/* NOTE: only required elements included here. Add optional elements as needed.*/
 		ST_CHAR id            [MAX_IDENT_LEN+1];
-
+		ST_CHAR sclCrc		  [MAX_CRC32_LEN+1];
 		/* Defined values for "nameStructure" attribute	*/
 #define SCL_NAMESTRUCTURE_IEDNAME	0	/* value="IEDName"	*/
 #define SCL_NAMESTRUCTURE_FUNCNAME	1	/* value="FuncName"	*/

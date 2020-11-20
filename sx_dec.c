@@ -32,7 +32,7 @@
 
 
 
-int g_rowIndex;
+ST_ULONG g_rowIndex;
 /************************************************************************/
 /* For debug version, use a static pointer to avoid duplication of 	*/
 /* __FILE__ strings.							*/
@@ -113,16 +113,18 @@ ST_RET sx_parseExx_mt (ST_CHAR *fileName, ST_INT numItems,
 	memset(cfgData, 0, fileSize);
 
 	//return 返回实际读取的单元个数,length
+	//cfgData 接收数据的地址,1为单元的大小,每个单元fileSize个字节,fp为文件流
 	bytesRead = fread (cfgData, 1, fileSize, fp);
 	fclose (fp);
 
-	if (bytesRead <= 0)
+	if (bytesRead < fileSize)
 	{
 		chk_free (cfgData);
 		SLOG_WARN ("Error: Could not read from '%s'", fileName);
 		return (SX_FILE_NOT_FOUND);
 	}
 
+	SLOG_DEBUG("numItems: %d", numItems);
 	rc = sx_parse_mt (bytesRead, cfgData, numItems, itemTbl, usr, 
 		u_sx_el_start_fun, u_sx_el_end_fun); 
 	if (rc != SD_SUCCESS)
@@ -153,7 +155,9 @@ ST_RET sx_parse_mt (ST_LONG lMsgLen, ST_CHAR *xml, ST_INT numItems,
 	sxDecCtrl = (SX_DEC_CTRL *) calloc (1, sizeof (SX_DEC_CTRL));
 	/* !we need to use here the system calloc */
 
+	//这个函数,每次进来,栈深度加一
 	sx_push (sxDecCtrl, numItems, itemTbl, SD_FALSE);
+	SLOG_DEBUG("sxDecCtrl->itemStackLevel: %d", sxDecCtrl->itemStackLevel);
 	sxDecCtrl->xmlStart = xml;
 	sxDecCtrl->xmlLen = lMsgLen;
 	sxDecCtrl->ignoreNS = sxIgnoreNS;
@@ -254,6 +258,7 @@ ST_VOID sxStartElement (SX_DEC_CTRL *sxDecCtrl)
 	sxDecElInfo = &sxDecCtrl->sxDecElInfo;
 	tag = sxDecElInfo->tag;
 	SLOG_DEBUG ("Start element '%s'", tag);
+
 	if (sxDecCtrl->errCode != SD_SUCCESS && sxDecCtrl->errCode != SX_ERR_CONVERT)
 	{
 		return;
@@ -262,11 +267,12 @@ ST_VOID sxStartElement (SX_DEC_CTRL *sxDecCtrl)
 	item = _uibed_find_element (sxDecCtrl, tag, &numOccPtr);
 
 	stackLevelSave = sxDecCtrl->itemStackLevel;
-	// if (strcmp (tag, "GSE") == 0) {
-	// 	printf ("tagName: %s stackLevelSave %d\n", tag, stackLevelSave);
-	// }
+
+	SLOG_DEBUG ("start itemStackLevel %d", stackLevelSave);
+
 	while (item == NULL && sxDecCtrl->itemStackLevel > 0)
 	{
+		// SLOG_DEBUG("sxDecCtrl->auto_pop[%d] = %d", sxDecCtrl->itemStackLevel-1,  sxDecCtrl->auto_pop[sxDecCtrl->itemStackLevel-1]);
 		if (sxDecCtrl->auto_pop[sxDecCtrl->itemStackLevel-1] == SD_TRUE)
 		{
 			_sx_pop (sxDecCtrl, SD_TRUE);
@@ -281,10 +287,11 @@ ST_VOID sxStartElement (SX_DEC_CTRL *sxDecCtrl)
 		if (*numOccPtr != 0 && ((item->elementFlags & SX_ELF_RPT) == 0))
 		{
 			sxDecCtrl->errCode = SX_DUPLICATE_NOT_ALLOWED;
-			SLOG_ERROR("Row = %d,Duplicate of element '%s' not allowed", g_rowIndex,tag);
+			SLOG_ERROR("Row = %lu,Duplicate of element '%s' not allowed", g_rowIndex,tag);
 			return;       
 		}
 		++(*numOccPtr);
+
 		if (*numOccPtr > 1)
 		{
 			SLOG_WARN ("Number occurences: %d", *numOccPtr);
@@ -292,6 +299,7 @@ ST_VOID sxStartElement (SX_DEC_CTRL *sxDecCtrl)
 
 		/* Save the item for later */
 		++sxDecCtrl->xmlNestLevel;
+		// SLOG_DEBUG ("xmlNestLevel : %d", sxDecCtrl->xmlNestLevel);
 		sxDecCtrl->elTbl[sxDecCtrl->xmlNestLevel] = item;
 
 		/* Call the user function, if there is one ... */
@@ -301,7 +309,10 @@ ST_VOID sxStartElement (SX_DEC_CTRL *sxDecCtrl)
 		{
 			if (item->funcPtr != NULL)
 			{
+				//not use by default
 				sxDecCtrl->elUser = item->user;
+				//run sclStartElements _SCL_SEFun
+				SLOG_DEBUG ("Run item tbl %s's func", item->tag);
 				(item->funcPtr)(sxDecCtrl);
 			}
 			else
@@ -332,7 +343,7 @@ ST_VOID sxStartElement (SX_DEC_CTRL *sxDecCtrl)
 	else
 	{
 		sxDecCtrl->errCode = SX_STRUCT_NOT_FOUND;
-		SLOG_ERROR ("Row = %d, Could not find element '%s' in element table",g_rowIndex,tag);
+		SLOG_ERROR ("Row = %lu, Could not find element '%s' in element table",g_rowIndex,tag);
 	}
 }
 
@@ -349,7 +360,7 @@ ST_VOID sxEndElement (SX_DEC_CTRL *sxDecCtrl)
 
 	sxDecElInfo = &sxDecCtrl->sxDecElInfo;
 	tag = sxDecElInfo->tag;
-	SLOG_DEBUG ("End element   '%s'", tag);
+
 	if (sxDecCtrl->errCode != SD_SUCCESS && sxDecCtrl->errCode != SX_ERR_CONVERT)
 	{
 		return;
@@ -363,10 +374,11 @@ ST_VOID sxEndElement (SX_DEC_CTRL *sxDecCtrl)
 		if (strcmp (tag, item->tag) != 0) /* verify end tag */
 		{
 			sxDecCtrl->errCode = SX_XML_MALFORMED;
-			SLOG_WARN("Row = %d, XML malformed: found </%s>, expected </%s>",g_rowIndex, tag, item->tag);
+			SLOG_WARN("Row = %lu, XML malformed: found </%s>, expected </%s>",g_rowIndex, tag, item->tag);
 		}
 		else
 		{
+			//调用element end 函数,这个函数由bit mask 控制
 			if ((item->elementFlags & SX_ELF_CEND) != 0)
 			{
 				sxDecCtrl->item = item;
@@ -391,7 +403,7 @@ ST_VOID sxEndElement (SX_DEC_CTRL *sxDecCtrl)
 			if (rc != SD_SUCCESS)
 			{
 				sxDecCtrl->errCode = SX_STRUCT_NOT_FOUND;
-				SLOG_ERROR ("Row = %d, u_sx_el_end failed for element '%s'",g_rowIndex, tag);
+				SLOG_ERROR ("Row = %lu, u_sx_el_end failed for element '%s'",g_rowIndex, tag);
 			}
 		}
 	}
@@ -428,7 +440,7 @@ ST_VOID sx_push (SX_DEC_CTRL *sxDecCtrl, ST_INT numItems, SX_ELEMENT *itemTbl,
 	itemTblCtrl->numItems= numItems;
 	sxDecCtrl->auto_pop[sxDecCtrl->itemStackLevel] = auto_pop;
 	++sxDecCtrl->itemStackLevel;
-
+	SLOG_DEBUG ("Sx_push itemTblCtrl %s", itemTbl->tag);
 	/* reset the numOCc elements */
 	for (i = 0; i < numItems; ++i)
 		numOccTbl[i] = 0;
@@ -471,7 +483,7 @@ static ST_VOID _sx_pop (SX_DEC_CTRL *sxDecCtrl, ST_BOOLEAN auto_pop)
 			if (numOccTbl[i] == 0 && ((item->elementFlags & SX_ELF_OPT) == 0))
 			{
 				sxDecCtrl->errCode = SX_REQUIRED_TAG_NOT_FOUND;
-				SLOG_ERROR ("Row = %d, Mandatory element '%s' not found", g_rowIndex, item->tag);
+				SLOG_ERROR ("Row = %lu, Mandatory element '%s' not found", g_rowIndex, item->tag);
 				break;       
 			}
 		}
@@ -492,7 +504,7 @@ SX_ELEMENT *_uibed_find_element (SX_DEC_CTRL *sxDecCtrl, ST_CHAR *tag, ST_INT **
 	itemTblCtrl = &sxDecCtrl->items[sxDecCtrl->itemStackLevel-1];
 	item = itemTblCtrl->itemTbl;
 	numItems = itemTblCtrl->numItems;
-
+	SLOG_DEBUG("item numItems %d", numItems);
 	/* See if this element is in our table */
 	for (i = 0; i < numItems; ++i, ++item)
 	{
@@ -659,7 +671,7 @@ ST_RET sx_get_entity (SX_DEC_CTRL *sxDecCtrl,
 		return (SD_FAILURE);
 	}
 
-	SLOG_DEBUG("sx_get_entity got data:");
+	// SLOG_DEBUG("sx_get_entity got data:");
 	return (SD_SUCCESS);
 #endif	/* !USE_EXPAT	*/
 }
@@ -828,7 +840,7 @@ ST_RET sx_get_value (SX_DEC_CTRL *sxDecCtrl, ST_CHAR *format_string, ST_VOID *ou
 	rc = sx_get_string_ptr (sxDecCtrl, &str, &strLen);
 	if (rc != SD_SUCCESS)
 		return (rc);
-
+	SLOG_DEBUG("sx_get_value: %s, len %d", str, strLen);
 	/* Convert to desired data format*/
 	/* Note: sscanf may return 'bad' value if the number in the str	*/
 	/*       exceeds the max value in format_string.		*/
@@ -1416,7 +1428,10 @@ ST_RET sx_get_string_ptr (SX_DEC_CTRL *sxDecCtrl, ST_CHAR **strOut, ST_INT *lenO
 
 	rc = sx_get_entity (sxDecCtrl, sxDecCtrl->elemBuf, sizeof(sxDecCtrl->elemBuf), &vLen);
 	if (rc != SD_SUCCESS)
+	{
+		SLOG_ERROR ("Sx_get_entity failed");
 		return (SD_FAILURE);
+	}
 
 	/* Convert to desired data format*/
 	sxDecCtrl->elemBuf[vLen] = 0;
@@ -1789,24 +1804,24 @@ ST_RET sx_get_time_ex (SX_DEC_CTRL *sxDecCtrl, time_t *out_ptr, ST_LONG *microse
 #define MAX_BYTES_IN_CHUNK  (2*SX_MAX_ELEM_LEN)	/* MUST BE EVEN */
 
 
-#define SX_LOAD_CHAR(a)  {\
+#define SX_LOAD_CHAR(a)  do {\
 	if (sxDecCtrl->useFp == SD_TRUE)\
-{\
-	sx_load_characters (lineBuf, &eof, sxDecCtrl->fp, a);\
-	sxDecElInfo->entityStart-= a;\
-	sxDecElInfo->entityEnd-= a;\
-}\
-						 else\
-{\
-	xml+= a;\
-	if( ( *xml == '\n' ) && (a != 0))\
-{\
-	g_rowIndex++;\
-}\
-}\
-}
+	{\
+		sx_load_characters (lineBuf, &eof, sxDecCtrl->fp, a);\
+		sxDecElInfo->entityStart-= a;\
+		sxDecElInfo->entityEnd-= a;\
+	}\
+	else\
+	{\
+		xml+= a;\
+		if( ( *xml == '\n' ) && (a != 0))\
+		{\
+			g_rowIndex++;\
+		}\
+	}\
+}while(0)
 
-
+//termFlag 提前终止标识符
 #define SX_RIP_NOT_DONE (!sxDecCtrl->termFlag && (((sxDecCtrl->useFp == SD_FALSE) && (xml < xmlEnd)) || ((sxDecCtrl->useFp == SD_TRUE) && (*xml != '\0'))))
 
 #define SX_RIP_DONE (sxDecCtrl->termFlag || ((sxDecCtrl->useFp == SD_FALSE) && (xml >= xmlEnd)) || ((sxDecCtrl->useFp == SD_TRUE) && (*xml == '\0')))
@@ -1868,9 +1883,9 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 		xmlLen = sxDecCtrl->xmlLen;
 		xmlEnd = xml + xmlLen;
 	}
-
+	
 	while (SX_RIP_NOT_DONE)
-	{
+	{		
 		/* Find a begin or end tag */
 		while (*xml != '<' && SX_RIP_NOT_DONE)
 			SX_LOAD_CHAR (1);
@@ -1880,10 +1895,10 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 
 		sawStartTag = SD_TRUE;
 		sxDecElInfo->tagStart = xml;
-
-
+		
 		/* OK, this should be the start of a start tag, an end tag, or a comment */
 		/* or block of binary CDATA						 */
+		/* < next  */
 		SX_LOAD_CHAR (1);
 
 		if (*xml == '?') /* title */
@@ -1928,7 +1943,7 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 				SX_LOAD_CHAR (1);
 				if (SX_RIP_DONE)
 				{
-					SLOG_ERROR ("Row = %d, SX decode error: could not find DOCTYPE end",g_rowIndex);
+					SLOG_ERROR ("Row = %lu, SX decode error: could not find DOCTYPE end",g_rowIndex);
 					sxDecCtrl->errCode = SD_FAILURE;
 					return (SD_FAILURE);
 				}
@@ -1938,32 +1953,39 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 		else if (*xml != '/')	/* Begin tag */
 		{
 			/* We have a element tag start, get the tag  first  */
-			tagDest = sxDecElInfo->tag;
+			memset(sxDecElInfo->tag, 0 , SX_MAX_TAG_LEN);
+			tagDest = sxDecElInfo->tag;	//当前tag指针
+
 			len = 0;
+			/* 获取 每一个数据块的tag <SCL ****>*/
 			while (SX_RIP_NOT_DONE)
 			{
 				c = *xml;
 				if (c == '>' || c == ' ' || c == '/' || c == 10 || c == 9 || c == 13) 	/* Found the end of the tag */
 					break;
 
-				*(tagDest++) = c;
+				*(tagDest++) = c;	//获取tag 内容
 				++len;
 				if (len >= SX_MAX_TAG_LEN)
 				{
-					SLOG_ERROR("Row = %d, SX decode error: tag too long",g_rowIndex);
+					SLOG_ERROR("Row = %lu, SX decode error: tag too long",g_rowIndex);
 					sxDecCtrl->errCode = SD_FAILURE;
 					return (SD_FAILURE);
 				}
-				SX_LOAD_CHAR (1);
+				SX_LOAD_CHAR (1);	//ptr xml++
 				if (sxDecCtrl->ignoreNS && c == ':')
 				{
 					tagDest = sxDecElInfo->tag;
 					len = 0;
 				}
+				
 			}
+			SLOG_DEBUG ("=========================tag start: %s=========================", sxDecElInfo->tag);
+			
+			//if not found
 			if (SX_RIP_DONE)
 			{
-				SLOG_ERROR ("Row = %d, SX decode error: could not find tag end",g_rowIndex);
+				SLOG_ERROR ("Row = %lu, SX decode error: could not find tag end",g_rowIndex);
 				sxDecCtrl->errCode = SD_FAILURE;
 				return (SD_FAILURE);
 			}
@@ -1971,6 +1993,7 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 
 			/* Now look for attributes */         
 			sxDecElInfo->attrCount = 0;
+			//遍历和统计Attributes
 			while (*xml != '>' && *xml != '/') /* we could have attributes! */
 			{
 				/* skip any whitespace before the start of the attribute name */
@@ -1979,23 +2002,30 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 
 				if (SX_RIP_DONE)
 				{
-					SLOG_ERROR ("Row = %d, SX decode error: could not find attribute name",g_rowIndex);
+					SLOG_ERROR ("Row = %lu, SX decode error: could not find attribute name",g_rowIndex);
 					sxDecCtrl->errCode = SD_FAILURE;
 					return (SD_FAILURE);
 				}
 
+				
+				//从行首遍历到行尾
 				if (*xml != '>' && *xml != '/')
 				{
+					
 					if (sxDecElInfo->attrCount >= SX_MAX_ATTRIB)
 					{
-						SLOG_ERROR ("Row = %d, SX decode error: too many attributes. Look at SX_MAX_ATTRIB define",g_rowIndex);
+						SLOG_ERROR ("Row = %lu, SX decode error: too many attributes. SX_MAX_ATTRIB define is %d",g_rowIndex, SX_MAX_ATTRIB);
 						sxDecCtrl->errCode = SD_FAILURE;
 						return (SD_FAILURE);
 					}
-
+					//bug fix,解决name和value有残留的问题
+					memset(sxDecElInfo->attr[sxDecElInfo->attrCount].name, 0, SX_MAX_ATTR_NAME);
+					memset(sxDecElInfo->attr[sxDecElInfo->attrCount].value, 0, SX_MAX_ATTR_VALUE);					
 					/* This should be the start of an attribute name */ 
 					attribNameDest = sxDecElInfo->attr[sxDecElInfo->attrCount].name;
 					len = 0;
+
+					//1 get attribute name
 					while (SX_RIP_NOT_DONE)
 					{
 						c = *xml;
@@ -2013,7 +2043,7 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 
 						if (len >= SX_MAX_ATTR_NAME)
 						{
-							SLOG_ERROR ("Row = %d, SX decode error: attribute name too long",g_rowIndex);
+							SLOG_ERROR ("Row = %lu, SX decode error: attribute name too long",g_rowIndex);
 							sxDecCtrl->errCode = SD_FAILURE;
 							return (SD_FAILURE);
 						}
@@ -2025,9 +2055,11 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 						}
 					}
 
+					SLOG_DEBUG ("sxDecElInfo->attr[%d].name: %s", sxDecElInfo->attrCount, sxDecElInfo->attr[sxDecElInfo->attrCount].name);
+
 					if (SX_RIP_DONE)
 					{
-						SLOG_ERROR ("Row = %d, SX decode error: could not find attribute name end",g_rowIndex);
+						SLOG_ERROR ("Row = %lu, SX decode error: could not find attribute name end",g_rowIndex);
 						sxDecCtrl->errCode = SD_FAILURE;
 						return (SD_FAILURE);
 					}
@@ -2040,9 +2072,10 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 					/* skip to the attribute '=' */
 					while (*xml != '=' && SX_RIP_NOT_DONE)
 						SX_LOAD_CHAR (1);
+
 					if (SX_RIP_DONE)
 					{
-						SLOG_ERROR ("Row = %d, SX decode error: could not find attribute '='",g_rowIndex);
+						SLOG_ERROR ("Row = %lu, SX decode error: could not find attribute '='",g_rowIndex);
 						sxDecCtrl->errCode = SD_FAILURE;
 						return (SD_FAILURE);
 					}
@@ -2055,14 +2088,14 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 					/* OK, get the attrib value */
 					if (*(xml) != '"' && *(xml) != '\'')		/* skip the opening " */
 					{
-						SLOG_ERROR ("Row = %d, SX decode error: could not find leading attribute value '\"'",g_rowIndex);
+						SLOG_ERROR ("Row = %lu, SX decode error: could not find leading attribute value '\"'",g_rowIndex);
 						sxDecCtrl->errCode = SD_FAILURE;
 						return (SD_FAILURE);
 					}
 
 					SX_LOAD_CHAR (1);
 
-					/* At the start of the attribute value */ 
+					/*2  At the start of the attribute value */ 
 					attribValDest = sxDecElInfo->attr[sxDecElInfo->attrCount].value;
 					len = 0;
 					while (SX_RIP_NOT_DONE)
@@ -2079,40 +2112,47 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 
 						if (len >= SX_MAX_ATTR_VALUE)
 						{
-							SLOG_ERROR ("Row = %d, SX decode error: attribute value too long",g_rowIndex);
+							SLOG_ERROR ("Row = %lu, SX decode error: attribute value too long",g_rowIndex);
 							sxDecCtrl->errCode = SD_FAILURE;
 							return (SD_FAILURE);
 						}
 						SX_LOAD_CHAR (1);
 					}
+
 					if (SX_RIP_DONE)
 					{
-						SLOG_ERROR ("Row = %d, SX decode error: could not find closing attribute value '\"'",g_rowIndex);
+						SLOG_ERROR ("Row = %lu, SX decode error: could not find closing attribute value '\"'",g_rowIndex);
 						sxDecCtrl->errCode = SD_FAILURE;
 						return (SD_FAILURE);
 					}
 
 					if (*(xml) != '"' && *(xml) != '\'')		/* skip the closing " */
 					{
-						SLOG_ERROR ("Row = %d, SX decode error: could not find closing attribute value '\"'",g_rowIndex);
+						SLOG_ERROR ("Row = %lu, SX decode error: could not find closing attribute value '\"'",g_rowIndex);
 						sxDecCtrl->errCode = SD_FAILURE;
 						return (SD_FAILURE);
 					}
 					SX_LOAD_CHAR (1);
 
 					*attribValDest = 0;	/* terminate the attrib value */
+					
+					SLOG_DEBUG ("sxDecElInfo->attr[%d].value: %s", sxDecElInfo->attrCount, sxDecElInfo->attr[sxDecElInfo->attrCount].value);					
+
 					strcpy (attribValCopy, sxDecElInfo->attr[sxDecElInfo->attrCount].value);
+					//删除引用符号
 					sx_format_string_dec (sxDecElInfo->attr[sxDecElInfo->attrCount].value, attribValCopy);
+					
 					++sxDecElInfo->attrCount;
 				}
 
+				// < > 行结束
 				if (SX_RIP_DONE)
 				{
-					SLOG_ERROR ("Row = %d, SX decode error: could not find tag end",g_rowIndex);
+					SLOG_ERROR ("Row = %lu, SX decode error: could not find tag end",g_rowIndex);
 					sxDecCtrl->errCode = SD_FAILURE;
 					return (SD_FAILURE);
 				}
-			}
+			} // end of while (*xml != '>' && *xml != '/') 一行结束
 
 			/* Could be empty tag */
 			if (*xml == '/')
@@ -2123,11 +2163,12 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 			}
 			SX_LOAD_CHAR (1); /* skip the '>' */
 
-			/* OK, now call the element start function */
+			/*3  OK, now call the element start function  读取下一层次Element的内容*/
 			sxDecElInfo->entityStart = xml;
 			sxDecElInfo->entityEnd = xml;
 			sxDecCtrl->xmlPos  = xml;	/* Save current dec position 	*/
 
+			//读取下一层数据
 			sxStartElement (sxDecCtrl); 
 			/* Fail on any error except convert error */
 			if (sxDecCtrl->errCode != SD_SUCCESS && sxDecCtrl->errCode != SX_ERR_CONVERT)
@@ -2141,14 +2182,19 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 				sxEndElement (sxDecCtrl);
 				bEmptyTag = SD_FALSE;
 			}
-			SX_LOAD_CHAR (sxDecCtrl->xmlPos - xml);
+			SX_LOAD_CHAR (sxDecCtrl->xmlPos - xml);	//计算这个entity经历了多少指针
 			sxDecCtrl->xmlPos  = xml;	/* Save current dec position 	*/
+
 		}
 		else		/* End tag */
 		{
+			//这个函数在最后运行
 			sxDecElInfo->entityEnd = xml - 1;
 			SX_LOAD_CHAR (1);
+			//clear tag array
+			memset(sxDecElInfo->tag, 0 , SX_MAX_TAG_LEN);
 			tagDest = sxDecElInfo->tag;
+	
 			len = 0;
 			while (SX_RIP_NOT_DONE)
 			{
@@ -2160,7 +2206,7 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 				++len;
 				if (len >= SX_MAX_TAG_LEN)
 				{
-					SLOG_ERROR ("Row = %d, SX decode error: tag too long",g_rowIndex);
+					SLOG_ERROR ("Row = %lu, SX decode error: tag too long",g_rowIndex);
 					sxDecCtrl->errCode = SD_FAILURE;
 					return (SD_FAILURE);
 				}
@@ -2171,21 +2217,25 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 					len = 0;
 				}
 			}
+			
+			//判断文件是否读完
 			if (SX_RIP_DONE)
 			{
-				SLOG_ERROR ("Row = %d, SX decode error: could not find tag end",g_rowIndex);
+				SLOG_ERROR ("Row = %lu, SX decode error: could not find tag end",g_rowIndex);
 				sxDecCtrl->errCode = SD_FAILURE;
 				return (SD_FAILURE);
 			}
 			*tagDest = 0;		/* terminate the tag */
 
+			SLOG_DEBUG ("=========================tag end: %s=========================", sxDecElInfo->tag);
 
 			/* any white space up to the end of the tag name */
 			while (*xml != '>' && SX_RIP_NOT_DONE)
 				SX_LOAD_CHAR (1);
+
 			if (SX_RIP_DONE)
 			{
-				SLOG_ERROR ("Row = %d, SX decode error: could not find tag end",g_rowIndex);
+				SLOG_ERROR ("Row = %lu, SX decode error: could not find tag end",g_rowIndex);
 				sxDecCtrl->errCode = SD_FAILURE;
 				return (SD_FAILURE);
 			}
@@ -2200,8 +2250,14 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 			{
 				return (SD_FAILURE);
 			}
+			
 		}
 
+	
+		/* for debug*/
+		if (sxDecCtrl->itemStackLevel > 5)  {
+			pause();
+		}	
 	}
 
 	if (!sawStartTag)

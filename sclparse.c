@@ -108,8 +108,9 @@ typedef struct scl_dec_ctrl
 /************************************************************************/
 static ST_VOID _SCL_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _Header_SFun (SX_DEC_CTRL *sxDecCtrl);
-
+static ST_VOID _Substation_CrcFun(SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _Communication_SEFun (SX_DEC_CTRL *sxDecCtrl);
+static ST_VOID _Communication_PortMapFun(SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _SubNetwork_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _ConnectedAP_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _GSE_SEFun (SX_DEC_CTRL *sxDecCtrl);
@@ -183,16 +184,21 @@ static int HexStrToInt(const ST_CHAR *p);
 /* The rest are handled by "unknown" element handler.			*/
 SX_ELEMENT sclStartElements[] = 
 {
-	{"SCL", 		SX_ELF_CSTARTEND,		_SCL_SEFun, NULL, 0}
+	/*name			elementFlags			funcPtr			user	notused*/
+	{"SCL", 		SX_ELF_CSTARTEND,		_SCL_SEFun, 	NULL, 	0}
 };
-
+/************************************************************************/
+/* Tables for mapping "SCL" elements.				*/
+/************************************************************************/
 SX_ELEMENT SCLElements[] = 
 {
-	{"Header",           	SX_ELF_CSTART|SX_ELF_OPT, 	_Header_SFun, NULL, 0},
+	/*name					elementFlags						funcPtr			user	notused*/
+	{"Private",           	SX_ELF_CSTARTEND|SX_ELF_OPTRPT, 	_Substation_CrcFun, NULL, 0},
+	{"Header",           	SX_ELF_CSTART|SX_ELF_OPT, 			_Header_SFun, NULL, 0},
 	{"Substation",          SX_ELF_CSTARTEND|SX_ELF_OPTRPT, 	_Substation_SEFun, NULL, 0},
-	{"Communication",    	SX_ELF_CSTARTEND|SX_ELF_OPT, 	_Communication_SEFun, NULL, 0},
-	{"IED",            	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_IED_SEFun, NULL, 0},
-	{"DataTypeTemplates", SX_ELF_CSTARTEND|SX_ELF_OPT, 	_DataTypeTemplates_SEFun, NULL, 0}
+	{"Communication",    	SX_ELF_CSTARTEND|SX_ELF_OPT, 		_Communication_SEFun, NULL, 0},	//next CommunicationElements
+	{"IED",            		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,		_IED_SEFun, NULL, 0},
+	{"DataTypeTemplates", 	SX_ELF_CSTARTEND|SX_ELF_OPT, 		_DataTypeTemplates_SEFun, NULL, 0}
 };
 
 /************************************************************************/
@@ -200,10 +206,11 @@ SX_ELEMENT SCLElements[] =
 /************************************************************************/
 SX_ELEMENT SubstationElements[] = 
 {
-	{"LNode",      	SX_ELF_CSTART|SX_ELF_OPTRPT,	_LNode_SFun, NULL, 0},
+	/*name					elementFlags					funcPtr				user	notused*/
+	{"LNode",      			SX_ELF_CSTART|SX_ELF_OPTRPT,	_LNode_SFun,			 NULL, 0},
 	{"PowerTransformer",    SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_PowerTransformer_SEFun, NULL, 0},
 	//{"GeneralEquipment",    SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_GeneralEquipment_SEFun, NULL, 0},
-	{"VoltageLevel",      	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_VoltageLevel_SEFun, NULL, 0},
+	{"VoltageLevel",      	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_VoltageLevel_SEFun, 	 NULL, 0},
 	//{"Function",      	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_Function_SEFun, NULL, 0}
 };
 
@@ -284,7 +291,8 @@ SX_ELEMENT SubFunctionElements[] =
 /************************************************************************/
 SX_ELEMENT CommunicationElements[] = 
 {
-	{"SubNetwork",      	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SubNetwork_SEFun, NULL, 0}
+	{"Private",   		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_Communication_PortMapFun, NULL, 0},
+	{"SubNetwork",		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SubNetwork_SEFun, NULL, 0}
 };
 
 SX_ELEMENT SubNetworkElements[] = 
@@ -720,6 +728,7 @@ ST_RET scl_parse (ST_CHAR *xmlFileName, ST_CHAR *iedName,
 		sizeof (sclStartElements)/sizeof(SX_ELEMENT), sclStartElements,
 		&sclDecCtrl, _scl_unknown_el_start, _scl_unknown_el_end);
 
+	SLOG_DEBUG ("iedName: %s", sclDecCtrl.sclInfo->lIEDHead->iedName);
 	/* NOTE: sx_parseEx_mt doesn't log error if file open fails, so log here*/
 	/* It may not log some other errors, so log any other error here too.	*/
 	if (ret == SX_FILE_NOT_FOUND)
@@ -737,6 +746,8 @@ ST_RET scl_parse (ST_CHAR *xmlFileName, ST_CHAR *iedName,
 
 static ST_VOID _SCL_SEFun (SX_DEC_CTRL *sxDecCtrl)
 {
+	SLOG_DEBUG ("Run _SCL_SEFun");
+	//SCL 层无事可做,下一层压栈
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 		sx_push (sxDecCtrl, sizeof(SCLElements)/sizeof(SX_ELEMENT), SCLElements, SD_FALSE);
 	else
@@ -747,6 +758,40 @@ static ST_VOID _SCL_SEFun (SX_DEC_CTRL *sxDecCtrl)
 }
 
 /************************************************************************/
+/*		_Substation_CrcFun	 处理scl 框架的Private like as: 			*/
+/*		<Private type="portMap">2-A;1-A</Private>
+		<Private type="portMap">2-B;1-B</Private>
+/************************************************************************/
+static ST_VOID _Substation_CrcFun(SX_DEC_CTRL *sxDecCtrl)
+{
+	SCL_DEC_CTRL *sclDecCtrl;
+	ST_CHAR *typeStrValue;
+	ST_RET ret;
+	SCL_INFO *sclInfo;
+	SLOG_DEBUG("Paser _Substation_CrcFun");
+	ST_CHAR *strOut;
+	ST_INT strLen;
+	sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
+	sclInfo = sclDecCtrl->sclInfo;
+
+	if (scl_get_attr_ptr (sxDecCtrl, "type", &typeStrValue, SCL_ATTR_OPTIONAL) == SD_SUCCESS)
+	{
+		if (strcmp (typeStrValue, "Substation virtual terminal conection CRC") != 0)
+		{
+			SLOG_ERROR ("Private attribute type='%s' not allowed. Assuming type desc='Substation virtual terminal conection CRC' ", typeStrValue);
+		}
+		
+		if (sx_get_string_ptr (sxDecCtrl, &strOut, &strLen) == SD_SUCCESS)
+		{
+			if (!strLen) return;
+			strncpy_safe (sclInfo->Header.sclCrc, strOut, MAX_CRC32_LEN);
+			SLOG_DEBUG("virtual terminal conection CRC %s strlen: %d", sclInfo->Header.sclCrc, strLen);
+		}			
+	}	
+
+	return;
+}
+/************************************************************************/
 /*			_Header_SFun					*/
 /************************************************************************/
 
@@ -756,16 +801,19 @@ static ST_VOID _Header_SFun (SX_DEC_CTRL *sxDecCtrl)
 	ST_CHAR *nameStructure;
 	ST_RET ret;
 	SCL_INFO *sclInfo;
-
+	SLOG_DEBUG("Paser _Header_SFun");
 	sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
 	sclInfo = sclDecCtrl->sclInfo;
 
 	/* Get required attributes	*/
+	//获取ID
 	ret = scl_get_attr_copy (sxDecCtrl, "id", sclInfo->Header.id,
 		(sizeof(sclInfo->Header.id)-1), SCL_ATTR_REQUIRED);
 	if (ret != SD_SUCCESS)
+	{	
+		SLOG_ERROR("Get scl_get_attr_copy ID error.");
 		return;	/* At least one required attr not found. Stop now.	*/
-
+	}
 	/* Handle optional "nameStructure".	*/
 	if (scl_get_attr_ptr (sxDecCtrl, "nameStructure", &nameStructure, SCL_ATTR_REQUIRED) == SD_SUCCESS)
 	{	
@@ -792,6 +840,40 @@ static ST_VOID _Communication_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	{
 		sx_pop (sxDecCtrl);
 	}
+}
+
+/************************************************************************/
+/*_Communication_PortMapFun	 处理Communication 自定义PortMap			*/
+/************************************************************************/
+static ST_VOID _Communication_PortMapFun(SX_DEC_CTRL *sxDecCtrl)
+{
+	SCL_DEC_CTRL *sclDecCtrl;
+	ST_CHAR *typeStrValue;
+	ST_RET ret;
+	SCL_INFO *sclInfo;
+	SLOG_DEBUG("Paser _Communication_PortMapFun");
+	ST_CHAR *strOut;
+	ST_INT strLen;
+	sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
+	sclInfo = sclDecCtrl->sclInfo;
+
+	if (scl_get_attr_ptr (sxDecCtrl, "type", &typeStrValue, SCL_ATTR_OPTIONAL) == SD_SUCCESS)
+	{
+		if (strcmp (typeStrValue, "portMap") != 0)
+		{
+			SLOG_ERROR ("Private attribute type='%s' not allowed. Assuming type desc='portMap' or 'portmap'..etc ", typeStrValue);
+		}
+		
+		if (sx_get_string_ptr (sxDecCtrl, &strOut, &strLen) == SD_SUCCESS)
+		{
+			if (!strLen) return;
+			SLOG_DEBUG ("strLen = %d", strLen);
+			// strncpy_safe (sclInfo->Header.sclCrc, strOut, MAX_CRC32_LEN);
+			SLOG_DEBUG("portMap: %s", strOut);
+		}			
+	}	
+
+	return;
 }
 /************************************************************************/
 /*			_SubNetwork_SEFun				*/
