@@ -4,11 +4,11 @@
 	<Private type="Substation virtual terminal conection CRC">22B9E621</Private>
 	<Header id="NSR-3620A-DG-N" version="V1.03" revision="V1.03" toolID="NariConfigTool" nameStructure="IEDName"/>
 	<Communication desc="communication">
-		<Private type="portMap">2-A;1-A</Private>
-		<Private type="portMap">2-B;1-B</Private>
-		<Private type="portMap">2-C;1-C</Private>
-		<Private type="portMap">2-G;1-G</Private>
-		<Private type="portMap">2-H;1-H</Private>
+		<Private type="portMAP">2-A;1-A</Private>
+		<Private type="PORTMAP">2-B;1-B</Private>
+		<Private type="PortMap">2-C;1-C</Private>
+		<Private type="Portmap">2-G;1-G</Private>
+		<Private type="PortMAP">2-H;1-H</Private>
 		<SubNetwork name="SubNetwork_Stationbus" type="8-MMS">
 			<ConnectedAP iedName="TEMPLATE" apName="S1">
 				<Address>

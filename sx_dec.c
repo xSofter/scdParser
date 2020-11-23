@@ -257,7 +257,6 @@ ST_VOID sxStartElement (SX_DEC_CTRL *sxDecCtrl)
 
 	sxDecElInfo = &sxDecCtrl->sxDecElInfo;
 	tag = sxDecElInfo->tag;
-	SLOG_DEBUG ("Start element '%s'", tag);
 
 	if (sxDecCtrl->errCode != SD_SUCCESS && sxDecCtrl->errCode != SX_ERR_CONVERT)
 	{
@@ -311,8 +310,7 @@ ST_VOID sxStartElement (SX_DEC_CTRL *sxDecCtrl)
 			{
 				//not use by default
 				sxDecCtrl->elUser = item->user;
-				//run sclStartElements _SCL_SEFun
-				SLOG_DEBUG ("Run item tbl %s's func", item->tag);
+				//run TBL funPtr
 				(item->funcPtr)(sxDecCtrl);
 			}
 			else
@@ -2253,11 +2251,6 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 			
 		}
 
-	
-		/* for debug*/
-		if (sxDecCtrl->itemStackLevel > 5)  {
-			pause();
-		}	
 	}
 
 	if (!sawStartTag)

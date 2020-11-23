@@ -86,7 +86,7 @@ typedef struct scl_dec_ctrl
 	ST_BOOLEAN accessPointFound;	/* SD_TRUE if IED and AccessPoint found	*/
 	ST_BOOLEAN iedNameMatched;	
 	ST_BOOLEAN accessPointMatched;
-	SCL_INFO *sclInfo;
+	SCL_INFO *sclInfo;	/* save scl info for user*/
 	SCL_GSE *scl_gse;	/* Used for "GSE" in "Communication" section	*/
 	SCL_SMV *scl_smv;	/* Used for "SMV" in "Communication" section	*/
 	SCL_ADDRESS *scl_addr;
@@ -118,14 +118,17 @@ static ST_VOID _GSE_Address_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _GSE_MinTime_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _GSE_MaxTime_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _GSE_Address_P_SEFun (SX_DEC_CTRL *sxDecCtrl);
+static ST_VOID _S1_ConnPortFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _SMV_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _SMV_Address_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _SMV_Address_P_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _Address_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _Address_P_SEFun (SX_DEC_CTRL *sxDecCtrl);
+static ST_VOID _Connection_P_Port_SEFun (SX_DEC_CTRL *sxDecCtrl);
 
 static ST_VOID _IED_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _AccessPoint_SEFun (SX_DEC_CTRL *sxDecCtrl);
+static ST_VOID _AccessPoint_PrivateFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _Server_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _LDevice_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _LN_SEFun (SX_DEC_CTRL *sxDecCtrl);
@@ -195,7 +198,7 @@ SX_ELEMENT SCLElements[] =
 	/*name					elementFlags						funcPtr			user	notused*/
 	{"Private",           	SX_ELF_CSTARTEND|SX_ELF_OPTRPT, 	_Substation_CrcFun, NULL, 0},
 	{"Header",           	SX_ELF_CSTART|SX_ELF_OPT, 			_Header_SFun, NULL, 0},
-	{"Substation",          SX_ELF_CSTARTEND|SX_ELF_OPTRPT, 	_Substation_SEFun, NULL, 0},
+	// {"Substation",          SX_ELF_CSTARTEND|SX_ELF_OPTRPT, 	_Substation_SEFun, NULL, 0},
 	{"Communication",    	SX_ELF_CSTARTEND|SX_ELF_OPT, 		_Communication_SEFun, NULL, 0},	//next CommunicationElements
 	{"IED",            		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,		_IED_SEFun, NULL, 0},
 	{"DataTypeTemplates", 	SX_ELF_CSTARTEND|SX_ELF_OPT, 		_DataTypeTemplates_SEFun, NULL, 0}
@@ -303,10 +306,12 @@ SX_ELEMENT SubNetworkElements[] =
 
 SX_ELEMENT ConnectedAPElements[] = 
 {
-	/* DEBUG: add "Address". Ignore "PhyConn".	*/
+	/* DEBUG: add "Address". */
 	{"Address",	    SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_Address_SEFun, NULL, 0},
 	{"GSE",	      	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_GSE_SEFun, NULL, 0},
-	{"SMV",	      	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SMV_SEFun, NULL, 0}
+	{"SMV",	      	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SMV_SEFun, NULL, 0},
+	/* add PhyConn and connections 获取端口信息*/
+	{"PhysConn",	    SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_S1_ConnPortFun, NULL, 0},
 };
 
 SX_ELEMENT AddressElements[] = 
@@ -316,9 +321,9 @@ SX_ELEMENT AddressElements[] =
 
 SX_ELEMENT GSEElements[] = 
 {
-	{"Address",      	SX_ELF_CSTARTEND|SX_ELF_OPT, 	_GSE_Address_SEFun, NULL, 0},
-	{"MinTime",      	SX_ELF_CEND|SX_ELF_OPT, 	_GSE_MinTime_SEFun, NULL, 0},
-	{"MaxTime",      	SX_ELF_CEND|SX_ELF_OPT, 	_GSE_MaxTime_SEFun, NULL, 0}
+	{"Address",      	SX_ELF_CSTARTEND|SX_ELF_OPT, _GSE_Address_SEFun, NULL, 0},
+	{"MinTime",      	SX_ELF_CEND|SX_ELF_OPT, 	 _GSE_MinTime_SEFun, NULL, 0},
+	{"MaxTime",      	SX_ELF_CEND|SX_ELF_OPT, 	 _GSE_MaxTime_SEFun, NULL, 0}
 };
 
 SX_ELEMENT GSEAddressElements[] = 
@@ -335,14 +340,21 @@ SX_ELEMENT SMVAddressElements[] =
 {
 	{"P",      		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SMV_Address_P_SEFun, NULL, 0}
 };
+
+SX_ELEMENT ConnectionElements[] = 
+{
+	{"P",      		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_Connection_P_Port_SEFun, NULL, 0}
+};
 /************************************************************************/
 /* Tables for mapping "IED" elements.					*/
 /************************************************************************/
 SX_ELEMENT IEDElements[] = 
 {
-	{"AccessPoint",      	SX_ELF_CSTARTEND|SX_ELF_RPT, 	_AccessPoint_SEFun, NULL, 0}
+	{"Private",        SX_ELF_CSTARTEND|SX_ELF_OPTRPT, 	_AccessPoint_PrivateFun, NULL, 0},
+	//regardless <Services>,直接从<AccessPoint >开始
+	{"AccessPoint",    SX_ELF_CSTARTEND|SX_ELF_RPT, 	_AccessPoint_SEFun, NULL, 0}
 };
-
+//===========================AccessPoint Start==========================================//
 SX_ELEMENT AccessPointElements[] = 
 {
 	{"Server",      	SX_ELF_CSTARTEND|SX_ELF_OPT, 		_Server_SEFun, NULL, 0}
@@ -355,7 +367,7 @@ SX_ELEMENT ServerElements[] =
 
 SX_ELEMENT LDeviceElements[] = 
 {
-	{"LN0",      		SX_ELF_CSTARTEND,		_LN_SEFun, NULL, 0},
+	{"LN0",      		SX_ELF_CSTARTEND,				_LN_SEFun, NULL, 0},
 	{"LN",      		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_LN_SEFun, NULL, 0}
 };
 
@@ -768,27 +780,27 @@ static ST_VOID _Substation_CrcFun(SX_DEC_CTRL *sxDecCtrl)
 	ST_CHAR *typeStrValue;
 	ST_RET ret;
 	SCL_INFO *sclInfo;
-	SLOG_DEBUG("Paser _Substation_CrcFun");
 	ST_CHAR *strOut;
 	ST_INT strLen;
 	sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
 	sclInfo = sclDecCtrl->sclInfo;
-
-	if (scl_get_attr_ptr (sxDecCtrl, "type", &typeStrValue, SCL_ATTR_OPTIONAL) == SD_SUCCESS)
+	if (sxDecCtrl->reason == SX_ELEMENT_END)
 	{
-		if (strcmp (typeStrValue, "Substation virtual terminal conection CRC") != 0)
+		if (scl_get_attr_ptr (sxDecCtrl, "type", &typeStrValue, SCL_ATTR_OPTIONAL) == SD_SUCCESS)
 		{
-			SLOG_ERROR ("Private attribute type='%s' not allowed. Assuming type desc='Substation virtual terminal conection CRC' ", typeStrValue);
+			if (strcmp (typeStrValue, "Substation virtual terminal conection CRC") != 0)
+			{
+				SLOG_ERROR ("Private attribute type='%s' not allowed. Assuming type desc='Substation virtual terminal conection CRC' ", typeStrValue);
+			}
+			
+			if (sx_get_string_ptr (sxDecCtrl, &strOut, &strLen) == SD_SUCCESS)
+			{
+				if (!strLen) return;
+				strncpy_safe (sclInfo->Header.sclCrc, strOut, MAX_CRC32_LEN);
+				SLOG_DEBUG("virtual terminal conection CRC %s strlen: %d", sclInfo->Header.sclCrc, strLen);
+			}
 		}
-		
-		if (sx_get_string_ptr (sxDecCtrl, &strOut, &strLen) == SD_SUCCESS)
-		{
-			if (!strLen) return;
-			strncpy_safe (sclInfo->Header.sclCrc, strOut, MAX_CRC32_LEN);
-			SLOG_DEBUG("virtual terminal conection CRC %s strlen: %d", sclInfo->Header.sclCrc, strLen);
-		}			
-	}	
-
+	}
 	return;
 }
 /************************************************************************/
@@ -859,7 +871,7 @@ static ST_VOID _Communication_PortMapFun(SX_DEC_CTRL *sxDecCtrl)
 
 	if (scl_get_attr_ptr (sxDecCtrl, "type", &typeStrValue, SCL_ATTR_OPTIONAL) == SD_SUCCESS)
 	{
-		if (strcmp (typeStrValue, "portMap") != 0)
+		if (strcasecmp (typeStrValue, "portMap") != 0)
 		{
 			SLOG_ERROR ("Private attribute type='%s' not allowed. Assuming type desc='portMap' or 'portmap'..etc ", typeStrValue);
 		}
@@ -867,11 +879,11 @@ static ST_VOID _Communication_PortMapFun(SX_DEC_CTRL *sxDecCtrl)
 		if (sx_get_string_ptr (sxDecCtrl, &strOut, &strLen) == SD_SUCCESS)
 		{
 			if (!strLen) return;
-			SLOG_DEBUG ("strLen = %d", strLen);
 			// strncpy_safe (sclInfo->Header.sclCrc, strOut, MAX_CRC32_LEN);
 			SLOG_DEBUG("portMap: %s", strOut);
 		}			
 	}	
+	
 
 	return;
 }
@@ -883,7 +895,7 @@ static ST_VOID _SubNetwork_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	SCL_DEC_CTRL *sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
 	ST_RET ret;
 	ST_CHAR *desc;
-
+	//parse <SubNetwork name="SubNetwork_Stationbus" type="xxxxxx">
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
 		SCL_SUBNET *scl_subnet;
@@ -922,7 +934,7 @@ static ST_VOID _ConnectedAP_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	SCL_DEC_CTRL *sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
 	ST_RET ret;
 	ST_CHAR *desc;
-
+	SLOG_DEBUG ("Parse _Communication_PortMapFun_ConnectedAP_SEFun");
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
 		SCL_CAP *scl_cap;
@@ -964,16 +976,22 @@ static ST_VOID _GSE_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
 		/* NOTE: save ptr in sclDecCtrl->scl_gse to use later in parsing.	*/
-		sclDecCtrl->scl_gse = scl_gse_add (sclDecCtrl->sclInfo);
+		sclDecCtrl->scl_gse = scl_gse_add (sclDecCtrl->sclInfo);	//使用链表存放
 		if (sclDecCtrl->scl_gse == NULL)
 		{
+			SLOG_ERROR ("STOP scl_gse_add because scl_gse is NULL");
 			scl_stop_parsing (sxDecCtrl, "scl_gse_add", SX_USER_ERROR);
 			return;
 		}
 		ret = scl_get_attr_copy (sxDecCtrl, "ldInst", sclDecCtrl->scl_gse->ldInst, (sizeof(sclDecCtrl->scl_gse->ldInst)-1), SCL_ATTR_REQUIRED);    
-		ret |= scl_get_attr_copy (sxDecCtrl, "cbName", sclDecCtrl->scl_gse->cbName, (sizeof(sclDecCtrl->scl_gse->cbName)-1), SCL_ATTR_REQUIRED);    
+		ret |= scl_get_attr_copy (sxDecCtrl, "cbName", sclDecCtrl->scl_gse->cbName, (sizeof(sclDecCtrl->scl_gse->cbName)-1), SCL_ATTR_REQUIRED); 
+
+		SLOG_DEBUG ("GSE Name: %s", sclDecCtrl->sclInfo->subnetHead->capHead->apName);
+		SLOG_DEBUG("ldInst: %s", sclDecCtrl->scl_gse->ldInst);
+		SLOG_DEBUG("cbName: %s", sclDecCtrl->scl_gse->cbName);
 		if (ret)	//error
 		{
+			SLOG_ERROR ("GSE scl_get_attr_copy error.");
 			scl_stop_parsing (sxDecCtrl, "GSE", SX_USER_ERROR);
 			return;
 		}
@@ -1048,7 +1066,7 @@ static ST_VOID _GSE_Address_P_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	if (sxDecCtrl->reason == SX_ELEMENT_END)
 	{
 		ret = scl_get_attr_ptr (sxDecCtrl, "type", &str, required);
-		if (!strcmpi(str,"MAC-Address"))
+		if (!strcasecmp(str,"MAC-Address"))
 		{
 			ret = sx_get_string_ptr (sxDecCtrl, &strOut, &strLen);
 			if (ret == SD_SUCCESS)
@@ -1060,19 +1078,19 @@ static ST_VOID _GSE_Address_P_SEFun (SX_DEC_CTRL *sxDecCtrl)
 				}
 			}
 		}
-		else if (!strcmpi(str,"APPID"))
+		else if (!strcasecmp(str,"APPID"))
 		{
 			ret = sx_get_string_ptr (sxDecCtrl, &strOut, &strLen);
 			if (ret == SD_SUCCESS)
 				sclDecCtrl->scl_gse->APPID = HexStrToInt(strOut);
 		}
-		else if (!strcmpi(str,"VLAN-PRIORITY"))
+		else if (!strcasecmp(str,"VLAN-PRIORITY"))
 		{
 			ret = sx_get_string_ptr (sxDecCtrl, &strOut, &strLen);
 			if (ret == SD_SUCCESS)
 				sclDecCtrl->scl_gse->VLANPRI = atoi(strOut);
 		}
-		else if (!strcmpi(str,"VLAN-ID"))
+		else if (!strcasecmp(str,"VLAN-ID"))
 		{
 			ret = sx_get_string_ptr (sxDecCtrl, &strOut, &strLen);
 			if (ret == SD_SUCCESS)
@@ -1081,8 +1099,53 @@ static ST_VOID _GSE_Address_P_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	}
 }
 /************************************************************************/
-/*			_SMV_SEFun					*/
+/*			_S1_ConnPortFun					*/
 /************************************************************************/
+static ST_VOID _S1_ConnPortFun (SX_DEC_CTRL *sxDecCtrl)
+{
+	SCL_DEC_CTRL *sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
+	ST_RET ret;
+	ST_CHAR *typeStr;
+	ST_INT strLen;
+	if (sxDecCtrl->reason == SX_ELEMENT_START)
+	{
+		/* NOTE: save ptr in sclDecCtrl->scl_smv to use later in parsing.	*/
+		// sclDecCtrl->scl_smv = scl_smv_add (sclDecCtrl->sclInfo);
+		// if (sclDecCtrl->scl_smv == NULL)
+		// {
+		// 	scl_stop_parsing (sxDecCtrl, "scl_smv_add", SX_USER_ERROR);
+		// 	return;
+		// }
+		// ret = scl_get_attr_copy (sxDecCtrl, "ldInst", sclDecCtrl->scl_smv->ldInst, (sizeof(sclDecCtrl->scl_smv->ldInst)-1), SCL_ATTR_REQUIRED);    
+		// ret |= scl_get_attr_copy (sxDecCtrl, "cbName", sclDecCtrl->scl_smv->cbName, (sizeof(sclDecCtrl->scl_smv->cbName)-1), SCL_ATTR_REQUIRED);    
+		// if (ret)
+		// {
+		// 	scl_stop_parsing (sxDecCtrl, "SMV", SX_USER_ERROR);
+		// 	return;
+		// }
+		SLOG_DEBUG("Parse _S1_ConnPortFun");
+		ret = scl_get_attr_ptr (sxDecCtrl, "type", &typeStr, SCL_ATTR_REQUIRED);
+		if (ret != SD_SUCCESS) {
+			scl_stop_parsing (sxDecCtrl, "type", SX_USER_ERROR);
+			return;
+		}
+
+		//寻找port
+		sx_push (sxDecCtrl, sizeof(ConnectionElements)/sizeof(SX_ELEMENT), 
+			ConnectionElements, SD_FALSE);
+	}
+	else
+	{
+		sx_pop (sxDecCtrl);
+	}
+}
+
+
+/**
+ * @description: 
+ * @param {*}
+ * @return {*}
+ */
 static ST_VOID _SMV_SEFun (SX_DEC_CTRL *sxDecCtrl)
 {
 	SCL_DEC_CTRL *sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
@@ -1175,6 +1238,67 @@ static ST_VOID _SMV_Address_P_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		}
 	}
 }
+
+/************************************************************************/
+/*			_Connection_P_Port_SEFun				*/
+/************************************************************************/
+static ST_VOID _Connection_P_Port_SEFun (SX_DEC_CTRL *sxDecCtrl)
+{
+	SCL_DEC_CTRL *sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
+	ST_CHAR *str;
+	ST_RET ret;
+	ST_BOOLEAN required = SD_FALSE;
+	ST_CHAR *strOut;
+	ST_INT strLen;
+	SCL_PORT *scl_port;
+
+	SLOG_DEBUG("Parse _Connection_P_Port_SEFun");
+	if (sxDecCtrl->reason == SX_ELEMENT_END)
+	{
+		ret = scl_get_attr_ptr (sxDecCtrl, "type", &str, required);
+		if (ret != SD_SUCCESS)
+		{
+			return;
+		}		
+		if (strcasecmp(str,"Port") == 0)
+		{
+			
+			scl_port = scl_port_add(sclDecCtrl->sclInfo);
+			if (scl_port == NULL)
+			{
+				scl_stop_parsing (sxDecCtrl, "scl_port", SX_USER_ERROR);
+				return;
+			}
+			/* Get required attributes	*/		
+			ret = sx_get_string_ptr (sxDecCtrl, &strOut, &strLen);	
+			if (ret == SD_SUCCESS) {
+				strncpy_safe (scl_port->portCfg, strOut, MAX_VALKIND_LEN);
+				SLOG_DEBUG ("GSE ports :%s", scl_port->portCfg);
+			}
+		}	
+		else if (strcasecmp(str,"Plug") == 0)
+		{
+			ret = sx_get_string_ptr (sxDecCtrl, &strOut, &strLen);
+			// if (ret == SD_SUCCESS)
+			// 	SLOG_DEBUG ("Plug: %s", strOut);
+
+		}
+		else if (strcasecmp(str,"Type") == 0)
+		{
+			ret = sx_get_string_ptr (sxDecCtrl, &strOut, &strLen);
+			// if (ret == SD_SUCCESS)			
+			// 	SLOG_DEBUG ("Type: %s", strOut);
+
+		}
+		else if (strcasecmp(str,"Cable") == 0)
+		{
+			ret = sx_get_string_ptr (sxDecCtrl, &strOut, &strLen);
+			// if (ret == SD_SUCCESS)			
+			// 	SLOG_DEBUG ("Cable: %s", strOut);
+
+		}		
+	}
+}
 /************************************************************************/
 /*			IED_SEFun					*/
 /************************************************************************/
@@ -1183,7 +1307,9 @@ static ST_VOID _IED_SEFun (SX_DEC_CTRL *sxDecCtrl)
 {
 	SCL_DEC_CTRL *sclDecCtrl;
 	ST_CHAR *str;	/* ptr set by scl_get_attr_ptr	*/
-	ST_CHAR *desc;
+	ST_CHAR *configver;
+	ST_CHAR *desc, *iedType, *manufacturer;
+
 	ST_RET ret;
 	ST_BOOLEAN required = SD_FALSE;
 
@@ -1199,12 +1325,14 @@ static ST_VOID _IED_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		required = SD_TRUE;
 
 		ret = scl_get_attr_ptr (sxDecCtrl, "name", &str, required);
+		ret |= scl_get_attr_ptr (sxDecCtrl, "configVersion", &configver, required);
 		if (ret != SD_SUCCESS)
 		{
 			return;
 		}
 
 		strncpy_safe (scl_lIED->iedName, str, MAX_IDENT_LEN);
+		strncpy_safe (scl_lIED->configVersion, configver, VERSION_LEN);
 //        strncpy_safe (sclDecCtrl->sclInfo->iedName, str, MAX_IDENT_LEN);
 		strncpy_safe (sclDecCtrl->iedName, str, MAX_IDENT_LEN);
 		//SLOG_DEBUG ("SCL PARSE: IED 'name' match found: %s", str);
@@ -1214,9 +1342,15 @@ static ST_VOID _IED_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &desc, required);
 		if (ret == SD_SUCCESS)
 			scl_lIED->desc = chk_strdup (desc);	/* Alloc & copy desc string	*/
+		ret = scl_get_attr_ptr (sxDecCtrl, "type", &iedType, required);
+		if (ret == SD_SUCCESS)
+			scl_lIED->iedType = chk_strdup (iedType);	/* Alloc & copy desc string	*/			
+		ret = scl_get_attr_ptr (sxDecCtrl, "manufacturer", &manufacturer, required);
+		if (ret == SD_SUCCESS)
+			scl_lIED->manufacturer = chk_strdup (manufacturer);	/* Alloc & copy desc string	*/	
 
 		sx_push (sxDecCtrl, sizeof(IEDElements)/sizeof(SX_ELEMENT), IEDElements, SD_FALSE);
-
+	
 		/* end required attributes */
 	}
 	else
@@ -1228,7 +1362,45 @@ static ST_VOID _IED_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	//	}
 	}
 }
+/**
+ * @description: 处理IED下层private信息函数
+ * @param {*} 
+ */
+static ST_VOID _AccessPoint_PrivateFun  (SX_DEC_CTRL *sxDecCtrl)
+{
+	SCL_DEC_CTRL *sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
+	ST_CHAR *str;
+	ST_RET ret;
+	ST_BOOLEAN required = SD_FALSE;
+	ST_CHAR *strOut;
+	ST_INT strLen;
 
+	SLOG_DEBUG("Parse _AccessPoint_PrivateFun");
+
+	if (sxDecCtrl->reason == SX_ELEMENT_END)
+	{
+		ret = scl_get_attr_ptr (sxDecCtrl, "type", &str, required);
+		if (ret != SD_SUCCESS)
+		{
+			return;
+		}		
+		if (strcasecmp(str, "IED virtual terminal conection CRC") == 0)
+		{
+			ret = sx_get_string_ptr (sxDecCtrl, &strOut, &strLen);
+			if (ret == SD_SUCCESS)
+			{
+				
+				if (sclDecCtrl->sclInfo->lIEDHead != NULL) {
+					strncpy_safe (sclDecCtrl->sclInfo->lIEDHead->iedDeviceCrc, strOut, MAX_CRC32_LEN);
+					SLOG_DEBUG ("IED virtual terminal conection CRC: %s", sclDecCtrl->sclInfo->lIEDHead->iedDeviceCrc);
+				} else {
+					SLOG_ERROR ("lIEDHead pointer is NUll");
+				}
+			}
+		}			
+	}
+
+}
 /************************************************************************/
 /*			_AccessPoint_SEFun				*/
 /************************************************************************/
@@ -1252,8 +1424,9 @@ static ST_VOID _AccessPoint_SEFun (SX_DEC_CTRL *sxDecCtrl)
 			return;
 		}
 		strncpy_safe(sclDecCtrl->accessPointName,str,MAX_IDENT_LEN);
-		//SLOG_DEBUG ("SCL PARSE: AccessPoint 'name' match found: %s", str);
-		//sclDecCtrl->accessPointFound = SD_TRUE;	/*NOTE: only get here if IED also found*/
+		SLOG_DEBUG ("SCL PARSE: AccessPoint name: %s", sclDecCtrl->accessPointName);
+
+		sclDecCtrl->accessPointFound = SD_TRUE;	/*NOTE: only get here if IED also found*/
 		//sclDecCtrl->accessPointMatched = SD_TRUE;
 		sx_push (sxDecCtrl, sizeof(AccessPointElements)/sizeof(SX_ELEMENT), AccessPointElements, SD_FALSE);
 
@@ -1276,7 +1449,7 @@ static ST_VOID _AccessPoint_SEFun (SX_DEC_CTRL *sxDecCtrl)
 static ST_VOID _Server_SEFun (SX_DEC_CTRL *sxDecCtrl)
 {
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
-	{
+	{	
 		sx_push (sxDecCtrl, sizeof(ServerElements)/sizeof(SX_ELEMENT), ServerElements, SD_FALSE);
 	}
 	else
@@ -1318,7 +1491,7 @@ static ST_VOID _LDevice_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		if (ret != SD_SUCCESS)
 			return;	/* At least one required attr not found. Stop now.	*/
 		/* end required attributes */
-
+		// SLOG_DEBUG ("LD device: %s, desc: %s", scl_ld->inst, scl_ld->desc);
 		sx_push (sxDecCtrl, sizeof(LDeviceElements)/sizeof(SX_ELEMENT), LDeviceElements, SD_FALSE);
 	}
 	else
@@ -1359,7 +1532,7 @@ static ST_VOID _LN_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
 		sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
-
+		//创建LN链表
 		scl_ln = sclDecCtrl->scl_ln = scl_ln_add (sclDecCtrl->sclInfo);
 		if (scl_ln == NULL)
 		{
@@ -1383,6 +1556,7 @@ static ST_VOID _LN_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		if (ret != SD_SUCCESS)
 			return;
 
+		//LN0的inClass必须为LLN0
 		if (stricmp(sxDecCtrl->sxDecElInfo.tag, "LN0") == 0 && 
 			stricmp(scl_ln->lnClass, "LLN0") != 0)
 		{

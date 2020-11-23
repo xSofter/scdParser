@@ -83,7 +83,7 @@ extern "C" {
 /* DEBUG: someday if all code is changed to consistently use SD_CONST,	*/
 /*        this define may be replaced with the following:		*/
 /* #define SD_CONST const						*/
-#define SD_CONST 
+#define SD_CONST  const
 
 /************************************************************************/
 /************************************************************************/

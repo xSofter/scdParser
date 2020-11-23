@@ -272,7 +272,7 @@ extern "C" {
 		FILE *fp;
 		/* Decoded element information 	*/
 		ST_INT reason;		   /* SX_ELEMENT_START, SX_ELEMENT_END	*/
-		SX_DEC_ELEMENT_INFO sxDecElInfo; 
+		SX_DEC_ELEMENT_INFO sxDecElInfo; 	/* Element Information  */
 		ST_CHAR elemBuf[SX_MAX_ELEM_LEN+1];	/* tmp buffer for an element	*/
 
 		/* Set to != SD_SUCCESS for error */

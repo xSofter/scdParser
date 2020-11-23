@@ -100,7 +100,7 @@ ST_RET list_unlink (DBL_LNK **list_head_ptr, DBL_LNK *node_ptr)
 
 ST_RET list_add_first (DBL_LNK **list_head_ptr, DBL_LNK *node_ptr)
 {
-	DBL_LNK *list_tail_ptr;
+	DBL_LNK *list_tail_ptr = NULL;
 
 #ifdef DEBUG_SISCO
 	if (node_ptr == NULL)
@@ -145,7 +145,7 @@ ST_RET list_add_last (DBL_LNK **list_head_ptr, DBL_LNK *node_ptr)
 #ifdef DEBUG_SISCO
 	if (node_ptr == NULL)
 	{
-		SLOGALWAYS ("GENLIST: ATTEMPT TO ADD A NULL ADDRESS TO A LIST");
+		SLOG_ERROR ("GENLIST: ATTEMPT TO ADD A NULL ADDRESS TO A LIST");
 		return (SD_FAILURE);
 	}
 #endif

@@ -27,7 +27,9 @@ int main(int argc, char* argv[])
 	ST_RET rc;
 
 	
-	SCL_INFO sclInfo = {0};
+	SCL_INFO sclInfo;
+	memset(&sclInfo, 0, sizeof(SCL_INFO));
+
 	SCL_LD* ld;
 	SCL_LN* ln;
 	SCL_DOI* doi;
@@ -36,6 +38,7 @@ int main(int argc, char* argv[])
 
 	SCL_SUBNET *net;
 	SCL_CAP *cap;
+	SCL_GSE *gse;
 
 	SCL_LNTYPE *lnt;
 	SCL_DO* don;
@@ -45,7 +48,7 @@ int main(int argc, char* argv[])
 
 	int i=0;
 
-	slog_start(SX_LOG_ALWAY, LOG_MEM_EN, NULL);
+	slog_start(SX_LOG_ALWAY, LOG_MEM_EN, "scdpase.log");
 	rc = scl_parse(xmlFileName, iedName, accessPointName, &sclInfo);
 
 #if 0
@@ -85,16 +88,22 @@ int main(int argc, char* argv[])
 	}
 #endif
 	//½âÎöcommunication,
+	
 	for(net = sclInfo.subnetHead; net!=NULL; net = (SCL_SUBNET*)list_get_next (sclInfo.subnetHead, net))
 	{
 		debugMsg << QString("net:%1 %2").arg(net->name).arg(net->desc);
-
+	
 		for(cap = net->capHead; cap!=NULL; cap = (SCL_CAP *)list_get_next (net->capHead, cap))
 		{
 			// if (cap->addr->IP == '\0' || cap->addr->IPSUBNET == '\0') continue;
-			// debugMsg << QString("  cap:%1 %2 %3 %4").arg(cap->iedName).arg(cap->desc).arg(cap->addr->IP).arg(cap->addr->IPSUBNET); // cap:TXJD01, 192.168.0.91
+			SCL_PORT *port;
+			for (port = cap->portHead; port != NULL; port = (SCL_PORT *)list_get_next (cap->portHead, port)) {
+				debugMsg << QString("Port: %1").arg(port->portCfg);
+			}
+			for (gse = cap->gseHead; gse != NULL; gse = (SCL_GSE *)list_get_next (cap->gseHead, gse)) {
+				debugMsg << QString("   cap:Name %5 MAC %1 APPID %2 min %4 max %5").arg(gse->MAC).arg(gse->APPID).arg(gse->minTime).arg(gse->maxTime).arg(gse->cbName);
+			}
 			
-			debugMsg << QString("   cap:Name %5 MAC %1 APPID %2 min %3 max %4").arg(cap->gseHead->MAC).arg(cap->gseHead->APPID).arg(cap->gseHead->minTime).arg(cap->gseHead->maxTime).arg(cap->gseHead->cbName);
 		}
 	}
 #if 0 

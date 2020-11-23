@@ -69,7 +69,7 @@ extern "C" {
 #define MAX_CDC_LEN	50	/* SPS, DPS, etc. (CURVE is longest	*/
 	/* predefined CDC but user may define others)*/
 #define MAX_FC_LEN	2	/* ST, MX, etc.				*/
-
+#define VERSION_LEN 5 // V1.00
 	/* These defines used in SCL_DA struct to differentiate between structs	*/
 	/* containing DA info and structs containing SDO info.			*/
 #define SCL_OBJTYPE_DA	0
@@ -320,7 +320,7 @@ extern "C" {
 		struct scl_gse *prev;		/* CRITICAL: DON'T MOVE.	*/
 		ST_CHAR ldInst[MAX_IDENT_LEN+1];
 		ST_CHAR cbName[MAX_IDENT_LEN+1];
-		ST_CHAR MAC[CLNP_MAX_LEN_MAC];	/* Multicast MAC address like 010CCD010000*/
+		ST_CHAR MAC[CLNP_MAX_LEN_MAC+1];	/* Multicast MAC address like 010CCD010000*/
 		ST_UINT APPID;
 		ST_UINT VLANPRI;
 		ST_UINT VLANID;
@@ -337,7 +337,7 @@ extern "C" {
 		struct scl_smv *prev;		/* CRITICAL: DON'T MOVE.	*/
 		ST_CHAR ldInst[MAX_IDENT_LEN+1];
 		ST_CHAR cbName[MAX_IDENT_LEN+1];
-		ST_CHAR MAC[CLNP_MAX_LEN_MAC];	/* Multicast MAC address	*/
+		ST_CHAR MAC[CLNP_MAX_LEN_MAC+1];	/* Multicast MAC address	*/
 		ST_UINT APPID;
 		ST_UINT VLANPRI;
 		ST_UINT VLANID;
@@ -348,9 +348,16 @@ extern "C" {
 		/* CRITICAL: First 2 parameters used to add this struct to linked	*/
 		ST_CHAR IP[20+1]; /* IP address	*/
 		ST_CHAR IPSUBNET[20+1];
-		ST_UCHAR IPGATEWAY[21];	
+		ST_CHAR IPGATEWAY[21];	
 	} SCL_ADDRESS;
 
+	typedef struct scl_ports
+	{
+		struct scl_ports *next;
+		struct scl_ports *prev;
+		ST_CHAR portCfg[MAX_IDENT_LEN+1];
+	} SCL_PORT;
+	
 	/* Data from "ConnectedAP" element	*/
 	typedef struct scl_cap
 	{
@@ -362,9 +369,10 @@ extern "C" {
 		ST_CHAR *desc;		/* description (optional)*/
 		/* may be long so allocate if present*/
 		ST_CHAR apName[MAX_IDENT_LEN+1];
+		SCL_PORT *portHead;
+		SCL_ADDRESS *addr;
 		SCL_GSE *gseHead;      /* head of list of GSE defs	*/
 		SCL_SMV *smvHead;      /* head of list of SMV defs	*/
-		SCL_ADDRESS *addr;
 	} SCL_CAP;
 
 	/* Data from "Subnetwork" element	*/
@@ -646,6 +654,10 @@ extern "C" {
 		DBL_LNK l;
 		ST_CHAR iedName[MAX_IDENT_LEN+1];	/* ied name (constructed)	*/
 		ST_CHAR *desc;			/* description (optional)*/
+		ST_CHAR *manufacturer;
+		ST_CHAR *iedType;
+		ST_CHAR configVersion[VERSION_LEN + 1];
+		ST_CHAR iedDeviceCrc [MAX_CRC32_LEN+1];
 	} SCL_IED;			/* IED*/
 
 	/************************************************************************/
@@ -873,6 +885,7 @@ extern "C" {
 
 	SCL_ADDRESS *scl_address_add (SCL_INFO *scl_info);
 
+	SCL_PORT *scl_port_add (SCL_INFO *scl_info);
 	/************************************************************************/
 	/*			scl_parse					*/
 	/* Parses SCL file and stores extracted info in SCL_INFO structure.	*/

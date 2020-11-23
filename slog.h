@@ -1,6 +1,6 @@
 /*
  * @Date: 2020-11-16 08:45
- * @LastEditTime: 2020-11-18 09:03
+ * @LastEditTime: 2020-11-23 10:47
  * @LastEditors: tangkai3
  * @Description: 
  */
@@ -41,14 +41,14 @@ extern "C" {
 #define  LOG_MEM_EN  0x01
 
 typedef struct log_ctrl
-  {
-/* User sets these elements						*/
+{
+  /* User sets these elements						*/
   ST_UINT32 logType;
   ST_UINT32 logCtrl; 	/* Logging Control flags - see LOG_xxx defines	*/
-/* Internal variables.							*/
+  /* Internal variables.							*/
   ST_INT max_msg_size;	/* max allowed log msg size.			*/
   FILE *fp;
-  } LOG_CTRL;
+} LOG_CTRL;
 
 
 #define SX_LOG_NONE  	0x0000

@@ -46,10 +46,10 @@
 #endif
 #include <sys/time.h>
 static LOG_CTRL g_lc;
-SD_CONST ST_INT g_logType;
-SD_CONST ST_CHAR *SD_CONST g_sourceFile;
-SD_CONST ST_INT g_lineNum;
-SD_CONST ST_CHAR *SD_CONST g_funName;
+ST_INT g_logType;
+ST_CHAR* g_sourceFile;
+ST_INT g_lineNum;
+ST_CHAR* g_funName;
 
 #ifdef DEBUG_SISCO
 SD_CONST static ST_CHAR *SD_CONST thisFileName = __FILE__;
@@ -86,22 +86,22 @@ ST_VOID slogHead (SD_CONST ST_INT logType,
 /*                               slog                                   */
 /************************************************************************/
 
-ST_VOID slog (SD_CONST ST_CHAR *format, ...)
+ST_VOID slog (SD_CONST ST_CHAR *SD_CONST format, ...)
 {
 	va_list	ap;
-	SD_CONST ST_UINT logType=g_logType;
-	SD_CONST ST_CHAR *SD_CONST sourceFile=g_sourceFile;
-	SD_CONST ST_INT lineNum=g_lineNum;
-	SD_CONST ST_CHAR *SD_CONST functionName=g_funName;
+	// SD_CONST ST_UINT logType=g_logType;
+	// SD_CONST ST_CHAR *SD_CONST sourceFile=g_sourceFile;
+	// SD_CONST ST_INT lineNum=g_lineNum;
+	// SD_CONST ST_CHAR *SD_CONST functionName=g_funName;
 
-	if(g_lc.logType>logType)
+	if(g_lc.logType>g_logType)
 	{
 		printf("logType %d error.\n", g_logType);
 		return;
 	}
 
 	va_start (ap, format);
-	doSlog (&g_lc, logType, functionName, sourceFile, lineNum, format, ap);
+	doSlog (&g_lc, g_logType, g_funName, g_sourceFile, g_lineNum, format, ap);
 	va_end(ap);
 }
 
@@ -131,7 +131,24 @@ static ST_VOID doSlog (LOG_CTRL *lc,
 	
 	/* It is OK to pass in a NULL format string when using the dynamic 	*/
 	/* logging functions - no vsprintf if so				*/
-
+	ST_CHAR logLevel[16] = {0};
+	switch (logType) {
+		case SX_LOG_DEBUG:
+			strncpy_safe(logLevel, "DEBUG", strlen("DEBUG"));
+			break;
+		case SX_LOG_ALWAY:
+			strncpy_safe(logLevel, "INFO", strlen("INFO"));
+			break;
+		case SX_LOG_WARN:
+			strncpy_safe(logLevel, "WARNING", strlen("WARNING"));
+			break;						
+		case SX_LOG_ERROR:
+			strncpy_safe(logLevel, "ERROR", strlen("ERROR"));
+			break;		
+		default:
+			strncpy_safe(logLevel, "Unknow Level", strlen("Unknow Level"));	
+			break;	
+	}
 	if (format == NULL)
 	{
 		/* make buf a zero length string just in case			*/
@@ -186,17 +203,22 @@ static ST_VOID doSlog (LOG_CTRL *lc,
 	if (lc->logCtrl && (g_lc.logType == LOG_FILE_EN) )	/* File Logging enabled		*/
 	{
 		/* Now print the message buffer						*/
-		fprintf (lc->fp,"[%s %s %s %d] %s\n", currTime, sourceFile, functionName, lineNum, msg_buf);
+		fprintf (lc->fp,"[%s %s %s %d]%s: %s\n", currTime, sourceFile, functionName, lineNum, logLevel, msg_buf);
 
 	}
 
 	if (lc->logCtrl && (g_lc.logType == LOG_MEM_EN) )
 	{
-		printf ("[%s %s %d] %s\n", sourceFile, functionName, lineNum, msg_buf);
+		printf ("[%s %s %s %d]%s: %s\n", currTime, sourceFile, functionName, lineNum, logLevel, msg_buf);
 	}
 
 }
 
+/**
+ * @description: getCurrentTime 获取当前YYYY-mm-dd HH:MM:SS:MS
+ * @param {*} 当前时间指针
+ * @return {*} null
+ */
 ST_VOID getCurrentTime(SD_CONST ST_CHAR *SD_CONST currTime) {
 	struct timespec
 	{
@@ -272,10 +294,11 @@ ST_VOID slogCallStack (LOG_CTRL *lc, SD_CONST ST_CHAR *txt)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-ST_RET slog_start (ST_UINT32 logCtrl, ST_UINT32 logType, ST_CHAR *sFile)
+ST_RET slog_start (SD_CONST ST_UINT32 logCtrl, SD_CONST ST_UINT32 logType, ST_CHAR *sFile)
 {
 	g_lc.logCtrl=logCtrl;
 	g_lc.logType=logType;
+	
 	if (sFile)
 	{
 		if ( (g_lc.fp=fopen(sFile,"w")) == NULL)

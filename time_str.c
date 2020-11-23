@@ -28,7 +28,7 @@
 #include "str_util.h"
 
 #ifdef DEBUG_SISCO
-SD_CONST static ST_CHAR *SD_CONST thisFileName = __FILE__;
+static SD_CONST ST_CHAR *SD_CONST thisFileName = __FILE__;
 #endif
 
 /************************************************************************/

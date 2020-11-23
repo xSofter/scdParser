@@ -523,8 +523,7 @@ SCL_SUBNET *scl_subnet_add (
 /* Allocates a SCL_CAP struct						*/
 /* and adds it to the linked list "capHead" in SCL_SUBNET.		*/
 /************************************************************************/
-SCL_CAP *scl_cap_add (
-					  SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
+SCL_CAP *scl_cap_add ( SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_CAP *scl_cap = NULL;	/* assume failure	*/
 
@@ -547,8 +546,7 @@ SCL_CAP *scl_cap_add (
 /* Allocates a SCL_GSE struct						*/
 /* and adds it to the linked list "gseHead" in SCL_CAP.			*/
 /************************************************************************/
-SCL_GSE *scl_gse_add (
-					  SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
+SCL_GSE *scl_gse_add (SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_GSE *scl_gse = NULL;	/* assume failure	*/
 
@@ -608,6 +606,28 @@ SCL_ADDRESS *scl_address_add (
 	}
 	return (scl_addr);
 }
+
+//SubNetwork goose发送端口号
+SCL_PORT *scl_port_add (
+						  SCL_INFO *scl_info)
+{
+	SCL_PORT *scl_port = NULL;	/* assume failure	*/
+
+	/* All higher level linked lists must be initialized.	*/
+	if (scl_info->subnetHead->capHead)
+	{
+		//端口描述为:2-G 11-A..., 不超过4B
+		scl_port = (SCL_PORT *) chk_calloc (1, sizeof (SCL_PORT));
+		/* Add to front of list.	*/
+		list_add_first (&scl_info->subnetHead->capHead->portHead, scl_port);
+		// scl_info->subnetHead->capHead->ports=scl_port;
+	}
+	else
+	{
+		SLOG_ERROR ("Cannot add Ports to NULL CAP");
+	}
+	return (scl_port);
+}
 /************************************************************************/
 /*			scl_info_destroy				*/
 /* Destroy all info stored in the SCL_INFO structure by "scl_parse".	*/
@@ -638,6 +658,7 @@ ST_VOID scl_info_destroy (SCL_INFO *scl_info)
 	SCL_CAP *scl_cap;
 	SCL_GSE *scl_gse;
 	SCL_SMV *scl_smv;
+	SCL_PORT *scl_port;
 	SCL_DOI *scl_doi;
 	SCL_SDI *scl_sdi;
 	SCL_IED *scl_ied;
@@ -789,6 +810,10 @@ ST_VOID scl_info_destroy (SCL_INFO *scl_info)
 			{
 				chk_free(scl_smv);
 			}
+			while ((scl_port = (SCL_PORT *) list_get_first(&scl_cap->portHead)) != NULL)
+			{
+				chk_free(scl_port);
+			}			
 			if(scl_cap->addr != NULL)
 			{
 				chk_free(scl_cap->addr);
