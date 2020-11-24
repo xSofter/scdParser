@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
 
 	int i=0;
 
-	slog_start(SX_LOG_ALWAY, LOG_MEM_EN, "scdpase.log");
+	slog_start(SX_LOG_ALWAY, LOG_FILE_EN, LOG_FILE_NAME);
 	rc = scl_parse(xmlFileName, iedName, accessPointName, &sclInfo);
 
 #if 0
@@ -101,21 +101,40 @@ int main(int argc, char* argv[])
 				debugMsg << QString("Port: %1").arg(port->portCfg);
 			}
 			for (gse = cap->gseHead; gse != NULL; gse = (SCL_GSE *)list_get_next (cap->gseHead, gse)) {
-				debugMsg << QString("   cap:Name %5 MAC %1 APPID %2 min %4 max %5").arg(gse->MAC).arg(gse->APPID).arg(gse->minTime).arg(gse->maxTime).arg(gse->cbName);
+				debugMsg << QString("   cap:Name %5 MAC %1 APPID %2 min %3 max %4").arg(gse->MAC).arg(gse->APPID).arg(gse->minTime).arg(gse->maxTime).arg(gse->cbName);
 			}
 			
 		}
 	}
-#if 0 
-	for(lnt = sclInfo.lnTypeHead; lnt!=NULL; lnt = (SCL_LNTYPE*)list_get_next (sclInfo.lnTypeHead, lnt))
+	SCL_ACCESSPOINT *acPoint;
+	
+	for (acPoint = sclInfo.accessPointHead; acPoint != NULL; acPoint = (SCL_ACCESSPOINT *)list_get_next(sclInfo.accessPointHead, acPoint))
 	{
-		printf("ln type:%s, %s\n",lnt->lnClass, lnt->id); //ln type:SIML, GDNR_MONT_V2_SIML_NSR-3900
-		for(don = lnt->doHead; don!=NULL; don = (SCL_DO*)list_get_next (lnt->doHead, don))
-		{
-			printf("  do:%s, %s\n",don->name, don->type); //do:CmbuGasAlm, CN_SPS
+		debugMsg << "==============================AccessPoint=================================" ;
+		debugMsg << QString("AccessPoint Name= %1 desc=%2 ").arg(acPoint->name).arg(acPoint->desc);
+		debugMsg << "==============================LDevice Start===============================" ;
+		SCL_LD *scl_ld;
+		SCL_LN *scl_ln;
+		for (scl_ld = acPoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(acPoint->ldHead, scl_ld)){
+			debugMsg << QString("LDevice inst= %1 desc=%2 apName=%3").arg(scl_ld->inst).arg(scl_ld->desc).arg(scl_ld->apName);
+			// sclInfo.LLN0
+			for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
+				debugMsg << QString("   LN:%1 %2 %3 %4 %5 %6").arg(scl_ln->varName).arg(scl_ln->desc).arg(scl_ln->lnType).arg(scl_ln->lnClass).arg(scl_ln->prefix).arg(scl_ln->inst);
+				for(SCL_DATASET* ds = scl_ln->datasetHead; ds != NULL; ds = (SCL_DATASET*)list_get_next(scl_ln->datasetHead, ds))
+				{
+					debugMsg << QString("  DataSet: name %1 Desc %2").arg(ds->name).arg(ds->desc); //
+					for(SCL_FCDA* fcda = ds->fcdaHead; fcda != NULL; fcda = (SCL_FCDA*)list_get_next(ds->fcdaHead, fcda)) 
+					{
+						debugMsg << QString("    FCDA ldInst=%1 prefix=%2 lnClass=%3 lnInst=%4 doName=%5 daName=%6 fc=%7").arg(fcda->ldInst).arg(fcda->prefix).arg(fcda->lnClass).arg(fcda->lnInst).arg(fcda->doName).arg(fcda->daName).arg(fcda->fc); //FCDA:Alm32, , TEMPLATELD0, ST
+					}
+				}
+			}
 		}
+		debugMsg << "==============================LDevice End===================================" ;
 	}
-
+	
+	
+ #if 0
 	for(dot = sclInfo.doTypeHead; dot!=NULL; dot = (SCL_DOTYPE*)list_get_next (sclInfo.doTypeHead, dot))
 	{
 		printf("do type:%s, %s\n",dot->id, dot->cdc);  //do type:CN_INC_Mod, INC

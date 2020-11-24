@@ -59,9 +59,15 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+typedef enum {
+	FIX_STR_LEN_1 = 1,
+	FIX_STR_LEN_2,
+	FIX_STR_LEN_3,
+	FIX_STR_LEN_4,
+	FIX_STR_LEN_5
+} enum_str_lenth;
 
 #define MAX_IDENT_LEN 100
-
 #define MVL61850_MAX_RPTID_LEN 64
 #define CLNP_MAX_LEN_MAC 12	/* 采用12字节显示,010CCD010000 */
 #define MAX_CRC32_LEN 8
@@ -70,6 +76,7 @@ extern "C" {
 	/* predefined CDC but user may define others)*/
 #define MAX_FC_LEN	2	/* ST, MX, etc.				*/
 #define VERSION_LEN 5 // V1.00
+
 	/* These defines used in SCL_DA struct to differentiate between structs	*/
 	/* containing DA info and structs containing SDO info.			*/
 #define SCL_OBJTYPE_DA	0
@@ -784,6 +791,20 @@ extern "C" {
 		/* scl_enumtype_add_enumval adds to list*/
 	} SCL_ENUMTYPE;
 
+	/* Data from "Subnetwork" element	*/
+	typedef struct scl_accesspoint
+	{
+		/* CRITICAL: First 2 parameters used to add this struct to linked	*/
+		/* lists using list_add_last, etc.					*/
+		DBL_LNK l;
+		ST_CHAR name[FIX_STR_LEN_3+1];		//S1 G1 M1
+		ST_CHAR *desc;		/* description (optional)*/
+		/* may be long so allocate if present*/
+		ST_CHAR router[FIX_STR_LEN_5+1];	//only choose True or false
+		ST_CHAR clock[FIX_STR_LEN_5+1];		//only choose True or false
+		/* Logical Device (MMS Domain) definitions (from AccessPoint section)	*/
+		SCL_LD *ldHead;		/* head of list of LDevice defs		*/
+	} SCL_ACCESSPOINT;
 	/************************************************************************/
 	/*			SCL_INFO					*/
 	/* This structure contains all information extracted from the SCL file	*/
@@ -799,14 +820,13 @@ extern "C" {
 		/* SubNetwork definitions from (from Communication section)		*/
 		SCL_SUBNET *subnetHead;	/* head of list of SubNetwork defs	*/
 
+		SCL_ACCESSPOINT *accessPointHead;
 		/* Logical Node Type definitions (from DataTypeTemplates section)	*/
 		SCL_LNTYPE *lnTypeHead;	/* head of list	of LNodeType defs	*/
 		SCL_DOTYPE *doTypeHead;	/* head of list of DOType defs		*/
 		SCL_DATYPE *daTypeHead;	/* head of list of DAType defs		*/
 		SCL_ENUMTYPE *enumTypeHead;	/* head of list of EnumType defs	*/
 
-		/* Logical Device (MMS Domain) definitions (from AccessPoint section)	*/
-		SCL_LD *ldHead;		/* head of list of LDevice defs		*/
 	} SCL_INFO;
 
 	/************************************************************************/
@@ -886,6 +906,8 @@ extern "C" {
 	SCL_ADDRESS *scl_address_add (SCL_INFO *scl_info);
 
 	SCL_PORT *scl_port_add (SCL_INFO *scl_info);
+
+	SCL_ACCESSPOINT *scl_accesspoint_add (SCL_INFO *scl_info);
 	/************************************************************************/
 	/*			scl_parse					*/
 	/* Parses SCL file and stores extracted info in SCL_INFO structure.	*/

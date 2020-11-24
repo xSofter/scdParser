@@ -255,15 +255,15 @@ SCL_FCDA *scl_fcda_add (
 						SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_FCDA *scl_fcda = NULL;	/* assume failure	*/
-
+	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
 	/* All higher level linked lists must be initialized.	*/
-	if (scl_info->ldHead
-		&& scl_info->ldHead->lnHead
-		&& scl_info->ldHead->lnHead->datasetHead)
+	if (ldHead
+		&& ldHead->lnHead
+		&& ldHead->lnHead->datasetHead)
 	{
 		scl_fcda = (SCL_FCDA *) chk_calloc (1, sizeof (SCL_FCDA));
 		/* Add FCDA to front of FCDA List.	*/
-		list_add_first (&scl_info->ldHead->lnHead->datasetHead->fcdaHead, scl_fcda);
+		list_add_first (&ldHead->lnHead->datasetHead->fcdaHead, scl_fcda);
 	}
 	else
 	{
@@ -282,14 +282,14 @@ SCL_DAI *scl_dai_add (
 					  SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_DAI *scl_dai = NULL;	/* assume failure	*/
-
+	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
 	/* All higher level linked lists must be initialized.	*/
-	if (scl_info->ldHead
-		&& scl_info->ldHead->lnHead)
+	if (ldHead
+		&& ldHead->lnHead)
 	{
 		scl_dai = (SCL_DAI *) chk_calloc (1, sizeof (SCL_DAI));
 		/* Add DAI to front of DAI List.	*/
-		list_add_first (&scl_info->ldHead->lnHead->doiHead->daiHead, scl_dai);
+		list_add_first (&ldHead->lnHead->doiHead->daiHead, scl_dai);
 	}
 	else
 	{
@@ -308,14 +308,14 @@ SCL_DATASET *scl_dataset_add (
 							  /* TRUNCATED if longer than buffer	*/
 {
 	SCL_DATASET *scl_dataset = NULL;	/* assume failure	*/
-
+	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
 	/* All higher level linked lists must be initialized.	*/
-	if (scl_info->ldHead
-		&& scl_info->ldHead->lnHead)
+	if (ldHead
+		&& ldHead->lnHead)
 	{
 		scl_dataset = (SCL_DATASET *) chk_calloc (1, sizeof (SCL_DATASET));
 		/* Add DATASET to front of DATASET List.	*/
-		list_add_first (&scl_info->ldHead->lnHead->datasetHead, scl_dataset);
+		list_add_first (&ldHead->lnHead->datasetHead, scl_dataset);
 	}
 	else
 	{
@@ -335,14 +335,14 @@ SCL_RCB *scl_rcb_add (
 					  SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_RCB *scl_rcb = NULL;
-
+	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
 	/* All higher level linked lists must be initialized.	*/
-	if (scl_info->ldHead
-		&& scl_info->ldHead->lnHead)
+	if (ldHead
+		&& ldHead->lnHead)
 	{
 		scl_rcb = (SCL_RCB *) chk_calloc (1, sizeof (SCL_RCB));
 		/* Add RCB to front of RCB List.	*/
-		list_add_first (&scl_info->ldHead->lnHead->rcbHead, scl_rcb);
+		list_add_first (&ldHead->lnHead->rcbHead, scl_rcb);
 	}
 	else
 	{
@@ -360,14 +360,14 @@ SCL_LCB *scl_lcb_add (
 					  SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_LCB *scl_lcb = NULL;
-
+	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
 	/* All higher level linked lists must be initialized.	*/
-	if (scl_info->ldHead
-		&& scl_info->ldHead->lnHead)
+	if (ldHead
+		&& ldHead->lnHead)
 	{
 		scl_lcb = (SCL_LCB *) chk_calloc (1, sizeof (SCL_LCB));
 		/* Add LCB to front of LCB List.	*/
-		list_add_first (&scl_info->ldHead->lnHead->lcbHead, scl_lcb);
+		list_add_first (&ldHead->lnHead->lcbHead, scl_lcb);
 	}
 	else
 	{
@@ -389,14 +389,14 @@ SCL_GCB *scl_gcb_add (
 					  SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_GCB *scl_gcb = NULL;	/* assume failure	*/
-
+	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
 	/* All higher level linked lists must be initialized.	*/
-	if (scl_info->ldHead
-		&& scl_info->ldHead->lnHead)
+	if (ldHead
+		&& ldHead->lnHead)
 	{
 		scl_gcb = (SCL_GCB *) chk_calloc (1, sizeof (SCL_GCB));
 		/* Add GCB to front of GCB List.	*/
-		list_add_first (&scl_info->ldHead->lnHead->gcbHead, scl_gcb);
+		list_add_first (&ldHead->lnHead->gcbHead, scl_gcb);
 	}
 	else
 	{
@@ -414,19 +414,19 @@ SCL_SGCB *scl_sgcb_add (
 						SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_SGCB *scl_sgcb = NULL;	/* assume failure	*/
-
+	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
 	/* All higher level linked lists must be initialized.	*/
-	if (scl_info->ldHead
-		&& scl_info->ldHead->lnHead)
+	if (ldHead
+		&& ldHead->lnHead)
 	{
 		/* Only one SGCB allowed. Make sure not already set.	*/
-		if (scl_info->ldHead->lnHead->sgcb != NULL)
+		if (ldHead->lnHead->sgcb != NULL)
 		{
 			SLOG_ERROR ("Duplicate SGCB (Setting Group Control Block) not allowed");
 			return (NULL);
 		}
 		else  
-			scl_info->ldHead->lnHead->sgcb = scl_sgcb = (SCL_SGCB *) chk_calloc (1, sizeof (SCL_SGCB));
+			ldHead->lnHead->sgcb = scl_sgcb = (SCL_SGCB *) chk_calloc (1, sizeof (SCL_SGCB));
 	}
 	else
 	{
@@ -444,14 +444,14 @@ SCL_SVCB *scl_svcb_add (
 						SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_SVCB *scl_svcb = NULL;	/* assume failure	*/
-
+	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
 	/* All higher level linked lists must be initialized.	*/
-	if (scl_info->ldHead
-		&& scl_info->ldHead->lnHead)
+	if (ldHead
+		&& ldHead->lnHead)
 	{
 		scl_svcb = (SCL_SVCB *) chk_calloc (1, sizeof(SCL_SVCB));
 		/* Add to front of list.	*/
-		list_add_first (&scl_info->ldHead->lnHead->svcbHead, scl_svcb);
+		list_add_first (&ldHead->lnHead->svcbHead, scl_svcb);
 	}
 	else
 	{
@@ -471,11 +471,11 @@ SCL_LN *scl_ln_add (
 	SCL_LN *scl_ln = NULL;	/* assume failure	*/
 
 	/* All higher level linked lists must be initialized.	*/
-	if (scl_info->ldHead)
+	if (scl_info->accessPointHead->ldHead)
 	{
 		scl_ln = (SCL_LN *) chk_calloc (1, sizeof (SCL_LN));
 		/* Add LN to front of LN List.	*/
-		list_add_first (&scl_info->ldHead->lnHead, scl_ln);
+		list_add_last (&scl_info->accessPointHead->ldHead->lnHead, scl_ln);
 	}
 	else
 	{
@@ -496,7 +496,7 @@ SCL_LD *scl_ld_create (
 
 	scl_ld = (SCL_LD *) chk_calloc (1, sizeof (SCL_LD));
 	/* Add LD to front of LD List.	*/
-	list_add_first (&scl_info->ldHead, scl_ld);
+	list_add_first (&scl_info->accessPointHead->ldHead, scl_ld);
 
 	return (scl_ld);
 }
@@ -536,7 +536,7 @@ SCL_CAP *scl_cap_add ( SCL_INFO *scl_info)	/* main struct where all SCL info sto
 	}
 	else
 	{
-		SLOG_ERROR ("Cannot add CAP to NULL SUBNET");
+		SLOG_ERROR ("Cannot add ConnectedAP to NULL SUBNET");
 	}
 	return (scl_cap);
 }
@@ -555,7 +555,7 @@ SCL_GSE *scl_gse_add (SCL_INFO *scl_info)	/* main struct where all SCL info stor
 	{
 		scl_gse = (SCL_GSE *) chk_calloc (1, sizeof (SCL_GSE));
 		/* Add to front of list.	*/
-		list_add_first (&scl_info->subnetHead->capHead->gseHead, scl_gse);
+		list_add_last (&scl_info->subnetHead->capHead->gseHead, scl_gse);
 	}
 	else
 	{
@@ -579,7 +579,7 @@ SCL_SMV *scl_smv_add (
 	{
 		scl_smv = (SCL_SMV *) chk_calloc (1, sizeof (SCL_SMV));
 		/* Add to front of list.	*/
-		list_add_first (&scl_info->subnetHead->capHead->smvHead, scl_smv);
+		list_add_last (&scl_info->subnetHead->capHead->smvHead, scl_smv);
 	}
 	else
 	{
@@ -619,7 +619,7 @@ SCL_PORT *scl_port_add (
 		//端口描述为:2-G 11-A..., 不超过4B
 		scl_port = (SCL_PORT *) chk_calloc (1, sizeof (SCL_PORT));
 		/* Add to front of list.	*/
-		list_add_first (&scl_info->subnetHead->capHead->portHead, scl_port);
+		list_add_last (&scl_info->subnetHead->capHead->portHead, scl_port);
 		// scl_info->subnetHead->capHead->ports=scl_port;
 	}
 	else
@@ -627,6 +627,21 @@ SCL_PORT *scl_port_add (
 		SLOG_ERROR ("Cannot add Ports to NULL CAP");
 	}
 	return (scl_port);
+}
+
+/**
+ * @description: AccessPoint 添加为链表
+ * @param {*} user memory
+ * @return {*} *scl_acpoint
+ */
+SCL_ACCESSPOINT *scl_accesspoint_add (SCL_INFO *scl_info)
+{
+	SCL_ACCESSPOINT *scl_acpoint = NULL;
+	scl_acpoint = (SCL_ACCESSPOINT *) chk_calloc (1, sizeof (SCL_ACCESSPOINT));
+	/* Add to front of list.	*/
+	list_add_first (&scl_info->accessPointHead, scl_acpoint);
+
+	return (scl_acpoint);	
 }
 /************************************************************************/
 /*			scl_info_destroy				*/
@@ -662,6 +677,7 @@ ST_VOID scl_info_destroy (SCL_INFO *scl_info)
 	SCL_DOI *scl_doi;
 	SCL_SDI *scl_sdi;
 	SCL_IED *scl_ied;
+	SCL_ACCESSPOINT *scl_acpoint;
 
 	SCL_SUBSTATION *subStn;
 	SCL_LNODE *lnode;
@@ -828,6 +844,107 @@ ST_VOID scl_info_destroy (SCL_INFO *scl_info)
 		chk_free (scl_subnet);
 	}
 
+	while ((scl_acpoint = (SCL_ACCESSPOINT *) list_get_first (&scl_info->accessPointHead)) != NULL)
+	{
+		if (scl_acpoint->desc)
+			chk_free (scl_acpoint->desc);
+		
+		while ((scl_ld = (SCL_LD *) list_get_first (&scl_acpoint->ldHead)) != NULL)
+			{	
+				while ((scl_ln = (SCL_LN *) list_get_first (&scl_ld->lnHead)) != NULL)
+				{	
+					while ((scl_doi = (SCL_DOI *) list_get_first (&scl_ln->doiHead)) != NULL)
+					{	
+						while ((scl_dai = (SCL_DAI *) list_get_first (&scl_doi->daiHead)) != NULL)
+						{	
+							if (scl_dai->Val)
+								chk_free (scl_dai->Val);
+
+							if (scl_dai->desc)
+								chk_free (scl_dai->desc);
+
+							chk_free (scl_dai);
+						}
+						while ((scl_sdi = (SCL_SDI *) list_get_first (&scl_doi->sdiHead)) != NULL)
+						{	
+							if (scl_sdi->desc)
+								chk_free (scl_sdi->desc);
+
+							chk_free (scl_sdi);
+						}
+
+						if (scl_doi->desc)
+							chk_free (scl_doi->desc);
+						chk_free (scl_doi);	
+					}
+
+					while ((scl_dataset = (SCL_DATASET *) list_get_first (&scl_ln->datasetHead)) != NULL)
+					{	
+						while ((scl_fcda = (SCL_FCDA *) list_get_first (&scl_dataset->fcdaHead)) != NULL)
+						{	
+							chk_free (scl_fcda);
+						}
+						if (scl_dataset->desc)
+							chk_free (scl_dataset->desc);
+						chk_free (scl_dataset);
+					}
+
+					while ((scl_rcb = (SCL_RCB *) list_get_first (&scl_ln->rcbHead)) != NULL)
+					{	
+						if (scl_rcb->desc)
+							chk_free (scl_rcb->desc);
+						chk_free (scl_rcb);
+					}
+
+					while ((scl_lcb = (SCL_LCB *) list_get_first (&scl_ln->lcbHead)) != NULL)
+					{	
+						if (scl_lcb->desc)
+							chk_free (scl_lcb->desc);
+						chk_free (scl_lcb);
+					}
+
+					while ((scl_gcb = (SCL_GCB *) list_get_first (&scl_ln->gcbHead)) != NULL)
+					{	
+						SCL_IEDNAME *iedNm;
+						while ((iedNm = (SCL_IEDNAME *) list_get_first (&scl_gcb->iedNHead)) != NULL)
+						{	
+							chk_free (iedNm);
+						}
+						if (scl_gcb->desc)
+							chk_free (scl_gcb->desc);
+						chk_free (scl_gcb);
+					}
+					while ((scl_svcb = (SCL_SVCB *) list_get_first (&scl_ln->svcbHead)) != NULL)
+					{	
+						SCL_IEDNAME *iedNm;
+						while ((iedNm = (SCL_IEDNAME *) list_get_first (&scl_svcb->iedNHead)) != NULL)
+						{	
+							chk_free (iedNm);
+						}
+						if (scl_svcb->desc)
+							chk_free (scl_svcb->desc);
+						chk_free (scl_svcb);
+					}
+
+					/* Only one SGCB allowed (no linked list)	*/
+					if (scl_ln->sgcb)
+					{	
+						if (scl_ln->sgcb->desc)
+							chk_free (scl_ln->sgcb->desc);
+						chk_free (scl_ln->sgcb);
+					}
+					if (scl_ln->desc)
+						chk_free (scl_ln->desc);
+					chk_free (scl_ln);
+				}
+				if (scl_ld->desc)
+					chk_free (scl_ld->desc);
+				chk_free (scl_ld);
+			}		
+		//do not forget free itself
+		chk_free (scl_acpoint);			
+	}
+
 	while ((scl_daType = (SCL_DATYPE *) list_get_first (&scl_info->daTypeHead)) != NULL)
 	{	
 		while ((scl_bda = (SCL_BDA *) list_get_first (&scl_daType->bdaHead)) != NULL)
@@ -880,98 +997,7 @@ ST_VOID scl_info_destroy (SCL_INFO *scl_info)
 		}
 		chk_free (scl_enum);
 	}
-	while ((scl_ld = (SCL_LD *) list_get_first (&scl_info->ldHead)) != NULL)
-	{	
-		while ((scl_ln = (SCL_LN *) list_get_first (&scl_ld->lnHead)) != NULL)
-		{	
-			while ((scl_doi = (SCL_DOI *) list_get_first (&scl_ln->doiHead)) != NULL)
-			{	
-				while ((scl_dai = (SCL_DAI *) list_get_first (&scl_doi->daiHead)) != NULL)
-				{	
-					if (scl_dai->Val)
-						chk_free (scl_dai->Val);
-
-					if (scl_dai->desc)
-						chk_free (scl_dai->desc);
-
-					chk_free (scl_dai);
-				}
-				while ((scl_sdi = (SCL_SDI *) list_get_first (&scl_doi->sdiHead)) != NULL)
-				{	
-					if (scl_sdi->desc)
-						chk_free (scl_sdi->desc);
-
-					chk_free (scl_sdi);
-				}
-
-				if (scl_doi->desc)
-					chk_free (scl_doi->desc);
-				chk_free (scl_doi);	
-			}
-
-			while ((scl_dataset = (SCL_DATASET *) list_get_first (&scl_ln->datasetHead)) != NULL)
-			{	
-				while ((scl_fcda = (SCL_FCDA *) list_get_first (&scl_dataset->fcdaHead)) != NULL)
-				{	
-					chk_free (scl_fcda);
-				}
-				if (scl_dataset->desc)
-					chk_free (scl_dataset->desc);
-				chk_free (scl_dataset);
-			}
-
-			while ((scl_rcb = (SCL_RCB *) list_get_first (&scl_ln->rcbHead)) != NULL)
-			{	
-				if (scl_rcb->desc)
-					chk_free (scl_rcb->desc);
-				chk_free (scl_rcb);
-			}
-
-			while ((scl_lcb = (SCL_LCB *) list_get_first (&scl_ln->lcbHead)) != NULL)
-			{	
-				if (scl_lcb->desc)
-					chk_free (scl_lcb->desc);
-				chk_free (scl_lcb);
-			}
-
-			while ((scl_gcb = (SCL_GCB *) list_get_first (&scl_ln->gcbHead)) != NULL)
-			{	
-				SCL_IEDNAME *iedNm;
-				while ((iedNm = (SCL_IEDNAME *) list_get_first (&scl_gcb->iedNHead)) != NULL)
-				{	
-					chk_free (iedNm);
-				}
-				if (scl_gcb->desc)
-					chk_free (scl_gcb->desc);
-				chk_free (scl_gcb);
-			}
-			while ((scl_svcb = (SCL_SVCB *) list_get_first (&scl_ln->svcbHead)) != NULL)
-			{	
-				SCL_IEDNAME *iedNm;
-				while ((iedNm = (SCL_IEDNAME *) list_get_first (&scl_svcb->iedNHead)) != NULL)
-				{	
-					chk_free (iedNm);
-				}
-				if (scl_svcb->desc)
-					chk_free (scl_svcb->desc);
-				chk_free (scl_svcb);
-			}
-
-			/* Only one SGCB allowed (no linked list)	*/
-			if (scl_ln->sgcb)
-			{	
-				if (scl_ln->sgcb->desc)
-					chk_free (scl_ln->sgcb->desc);
-				chk_free (scl_ln->sgcb);
-			}
-			if (scl_ln->desc)
-				chk_free (scl_ln->desc);
-			chk_free (scl_ln);
-		}
-		if (scl_ld->desc)
-			chk_free (scl_ld->desc);
-		chk_free (scl_ld);
-	}
+	
 
 	while ((scl_ied = (SCL_IED *) list_get_first (&scl_info->lIEDHead)) != NULL)
 	{	

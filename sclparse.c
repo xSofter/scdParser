@@ -86,10 +86,11 @@ typedef struct scl_dec_ctrl
 	ST_BOOLEAN accessPointFound;	/* SD_TRUE if IED and AccessPoint found	*/
 	ST_BOOLEAN iedNameMatched;	
 	ST_BOOLEAN accessPointMatched;
+	SCL_ACCESSPOINT *scl_apInfo;
 	SCL_INFO *sclInfo;	/* save scl info for user*/
 	SCL_GSE *scl_gse;	/* Used for "GSE" in "Communication" section	*/
 	SCL_SMV *scl_smv;	/* Used for "SMV" in "Communication" section	*/
-	SCL_ADDRESS *scl_addr;
+	SCL_ADDRESS *scl_addr;	/* 站控层地址*/
 	SCL_LD *scl_ld;	/* Used for "LDevice"				*/
 	SCL_LN *scl_ln;	/* Used for "LN" (Logical Node)			*/
 	SCL_RCB *scl_rcb;	/* alloc to store ReportControl info		*/
@@ -350,6 +351,7 @@ SX_ELEMENT ConnectionElements[] =
 /************************************************************************/
 SX_ELEMENT IEDElements[] = 
 {
+	//private 包括IED的CRC校验码,以及南网signal map
 	{"Private",        SX_ELF_CSTARTEND|SX_ELF_OPTRPT, 	_AccessPoint_PrivateFun, NULL, 0},
 	//regardless <Services>,直接从<AccessPoint >开始
 	{"AccessPoint",    SX_ELF_CSTARTEND|SX_ELF_RPT, 	_AccessPoint_SEFun, NULL, 0}
@@ -732,7 +734,7 @@ ST_RET scl_parse (ST_CHAR *xmlFileName, ST_CHAR *iedName,
 
 //	sclDecCtrl.iedName = iedName;
 //	sclDecCtrl.accessPointName = accessPointName;
-	strncpy(sclDecCtrl.accessPointName, accessPointName, sizeof(sclDecCtrl.accessPointName));
+	// strncpy(sclDecCtrl.accessPointName, accessPointName, sizeof(sclDecCtrl.accessPointName));
 //	sclDecCtrl.accessPointFound = SD_FALSE;
 	sclDecCtrl.sclInfo = sclInfo;
 
@@ -1318,6 +1320,7 @@ static ST_VOID _IED_SEFun (SX_DEC_CTRL *sxDecCtrl)
 
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
+		//创建IED链表
 		SCL_IED *scl_lIED = (SCL_IED *) chk_calloc (1, sizeof (SCL_IED));
 		list_add_first (&sclDecCtrl->sclInfo->lIEDHead, scl_lIED);
 
@@ -1408,7 +1411,7 @@ static ST_VOID _AccessPoint_PrivateFun  (SX_DEC_CTRL *sxDecCtrl)
 static ST_VOID _AccessPoint_SEFun (SX_DEC_CTRL *sxDecCtrl)
 {
 	SCL_DEC_CTRL *sclDecCtrl;
-	ST_CHAR *str;	/* ptr set by scl_get_attr_ptr	*/
+	ST_CHAR *name, *desc;	/* ptr set by scl_get_attr_ptr	*/
 	ST_RET ret;
 	ST_BOOLEAN required = SD_FALSE;
 
@@ -1417,17 +1420,31 @@ static ST_VOID _AccessPoint_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
 		/* start required attributes */
-		required = SD_TRUE;
-		ret = scl_get_attr_ptr (sxDecCtrl, "name", &str, required);
-		if (ret != SD_SUCCESS)
+		
+		SCL_ACCESSPOINT *scl_acpoint = scl_accesspoint_add(sclDecCtrl->sclInfo);
+		if (scl_acpoint == NULL)
 		{
+			scl_stop_parsing (sxDecCtrl, "scl_accesspoint_add", SX_USER_ERROR);
 			return;
 		}
-		strncpy_safe(sclDecCtrl->accessPointName,str,MAX_IDENT_LEN);
-		SLOG_DEBUG ("SCL PARSE: AccessPoint name: %s", sclDecCtrl->accessPointName);
-
+		required = SD_TRUE;
+		ret = scl_get_attr_ptr (sxDecCtrl, "name", &name, SD_TRUE);
+		if (strlen(name) > FIX_STR_LEN_3)
+		{
+			SLOG_ERROR("AccessPoint name= %s is illegal.", name);
+			scl_stop_parsing (sxDecCtrl, "name", SX_REQUIRED_TAG_NOT_FOUND);
+			return;
+		}		
+		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &desc, SD_TRUE);
+	
+		scl_acpoint->desc =  chk_strdup (desc); /* Alloc & copy desc string	*/
+		strncpy_safe(scl_acpoint->name, name, FIX_STR_LEN_3);
+		strncpy_safe(sclDecCtrl->accessPointName, name, FIX_STR_LEN_3);
+		//原函数传参没有用处,目前需要考虑多个Accesspoint
+		// SLOG_DEBUG ("SCL PARSE: AccessPoint name: %s", sclDecCtrl->accessPointName);
+		SLOG_DEBUG ("SCL PARSE: AccessPoint name: %s desc: %s", scl_acpoint->name, scl_acpoint->desc);
 		sclDecCtrl->accessPointFound = SD_TRUE;	/*NOTE: only get here if IED also found*/
-		//sclDecCtrl->accessPointMatched = SD_TRUE;
+		sclDecCtrl->accessPointMatched = SD_TRUE;
 		sx_push (sxDecCtrl, sizeof(AccessPointElements)/sizeof(SX_ELEMENT), AccessPointElements, SD_FALSE);
 
 		/* end required attributes */
@@ -1471,7 +1488,7 @@ static ST_VOID _LDevice_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
 		sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
-
+		//添加LDevice 链表
 		scl_ld = sclDecCtrl->scl_ld = scl_ld_create (sclDecCtrl->sclInfo);
 		if (scl_ld == NULL)
 		{
@@ -1491,7 +1508,7 @@ static ST_VOID _LDevice_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		if (ret != SD_SUCCESS)
 			return;	/* At least one required attr not found. Stop now.	*/
 		/* end required attributes */
-		// SLOG_DEBUG ("LD device: %s, desc: %s", scl_ld->inst, scl_ld->desc);
+		SLOG_DEBUG ("LD device: %s, desc: %s", scl_ld->inst, scl_ld->desc);
 		sx_push (sxDecCtrl, sizeof(LDeviceElements)/sizeof(SX_ELEMENT), LDeviceElements, SD_FALSE);
 	}
 	else
@@ -1895,7 +1912,7 @@ static ST_VOID _IEDName_EFun (SX_DEC_CTRL *sxDecCtrl)
 	if (ret==SD_SUCCESS)
 	{
 		SCL_IEDNAME *iedNm=(SCL_IEDNAME *) chk_calloc (1, sizeof (SCL_IEDNAME));
-		SCL_LD *ld=sclDecCtrl->sclInfo->ldHead;
+		SCL_LD *ld=sclDecCtrl->sclInfo->accessPointHead->ldHead;
 		if (ld && ld->lnHead && ld->lnHead->gcbHead)
 		{
 			list_add_first (&ld->lnHead->gcbHead->iedNHead, iedNm);
@@ -1931,7 +1948,7 @@ static ST_VOID _IEDName2_EFun (SX_DEC_CTRL *sxDecCtrl)
 	if (ret==SD_SUCCESS)
 	{
 		SCL_IEDNAME *iedNm=(SCL_IEDNAME *) chk_calloc (1, sizeof (SCL_IEDNAME));
-		SCL_LD *ld=sclDecCtrl->sclInfo->ldHead;
+		SCL_LD *ld=sclDecCtrl->sclInfo->accessPointHead->ldHead;
 		if (ld && ld->lnHead && ld->lnHead->svcbHead)
 		{
 			list_add_first (&ld->lnHead->svcbHead->iedNHead, iedNm);
@@ -2181,7 +2198,7 @@ static ST_VOID _DOI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
 		SCL_DOI *doi = (SCL_DOI *) chk_calloc (1, sizeof (SCL_DOI));
-		list_add_first (&sclDecCtrl->sclInfo->ldHead->lnHead->doiHead, doi);
+		list_add_first (&sclDecCtrl->sclInfo->accessPointHead->ldHead->lnHead->doiHead, doi);
 
 		/* start required attributes */
 		ret = scl_get_attr_copy (sxDecCtrl, "name", doi->name, (sizeof(doi->name)-1), SCL_ATTR_REQUIRED);
@@ -2230,7 +2247,7 @@ static ST_VOID _SDI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
 		SCL_SDI *sdi = (SCL_SDI *) chk_calloc (1, sizeof (SCL_SDI));
-		list_add_first (&sclDecCtrl->sclInfo->ldHead->lnHead->doiHead->sdiHead, sdi);
+		list_add_first (&sclDecCtrl->sclInfo->accessPointHead->ldHead->lnHead->doiHead->sdiHead, sdi);
 
 		/* start optional attributes */
 		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &name, SCL_ATTR_OPTIONAL);
