@@ -261,9 +261,19 @@ SCL_FCDA *scl_fcda_add (
 		&& ldHead->lnHead
 		&& ldHead->lnHead->datasetHead)
 	{
-		scl_fcda = (SCL_FCDA *) chk_calloc (1, sizeof (SCL_FCDA));
 		/* Add FCDA to front of FCDA List.	*/
-		list_add_first (&ldHead->lnHead->datasetHead->fcdaHead, scl_fcda);
+		//modify by tangkai 每个fcda节点,由新地址作为头结点
+		//FCDA由上一级Dataset创建,所以头结点由Dataset管理
+		SCL_DATASET *dsLast = list_find_last(ldHead->lnHead->datasetHead);
+		if (NULL != dsLast) {
+			scl_fcda = (SCL_FCDA *) chk_calloc (1, sizeof (SCL_FCDA));
+			list_add_last (&dsLast->fcdaHead, scl_fcda);
+		} else
+		{
+			SLOG_ERROR ("Cannot add FCDA to NULL DATASET");
+		}
+		
+		
 	}
 	else
 	{
@@ -271,6 +281,70 @@ SCL_FCDA *scl_fcda_add (
 	}
 
 	return (scl_fcda);
+}
+
+/************************************************************************/
+/*			scl_doi_add					*/
+/* Allocates a SCL_DOI struct						*/
+/* and adds it to the linked list "lnHead" in SCL_LN.			*/
+/************************************************************************/
+SCL_DOI *scl_doi_add(SCL_INFO *scl_info) {
+	SCL_DAI *scl_doi = NULL;	/* assume failure	*/
+	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
+	//确保头指针存在
+	if (ldHead && ldHead->lnHead) {
+		SCL_LN *curLn = list_find_last(ldHead->lnHead);
+		if ( curLn != NULL ) {
+			/* Add DOI to front of LN List.	*/
+			/* DOI 的头结点指向本级LN*/
+			scl_doi = (SCL_DOI *) chk_calloc (1, sizeof (SCL_DOI));
+			list_add_last (&curLn->doiHead, scl_doi);	
+		} else {
+			SLOG_ERROR ("Cannot add DOI to NULL LN");
+		}
+	} else
+	{
+		SLOG_ERROR ("Cannot add DOI to NULL LN");
+	}
+
+	return (scl_doi);
+}
+
+/************************************************************************/
+/*			scl_sdi_add					*/
+/* Allocates a SCL_SDI struct						*/
+/* and adds it to the linked list "lnHead" in SCL_LN.			*/
+/************************************************************************/
+SCL_SDI *scl_sdi_add(SCL_INFO *scl_info) {
+	SCL_SDI *scl_sdi = NULL;	/* assume failure	*/
+	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
+	SCL_LN *lnHead = ldHead->lnHead;
+
+	//确保头指针存在
+	if (ldHead && lnHead) {
+		//find current ln, return if null found
+		SCL_LN *curLn = list_find_last(ldHead->lnHead);
+		if (!curLn){
+			SLOG_ERROR ("Cannot find LN from LD");
+			return (scl_sdi);
+		} 
+		//find current doi, return if null found
+		SCL_DOI *curDoi = list_find_last(curLn->doiHead);
+		if (!curDoi) {
+			SLOG_ERROR ("Cannot find DOI from LN");
+			return (scl_sdi);
+		}		
+		/* Add SDI to front of DOI List.	*/
+			/* SDI 的头结点指向本级DOI*/
+		SLOG_DEBUG("SCL_SDI_ADD last DOI address 0x%p, doiname: %s, ln: %s, ld: %s", curDoi, curDoi->name, curLn->desc, ldHead->desc);
+		scl_sdi = (SCL_SDI *) chk_calloc (1, sizeof (SCL_SDI));
+		list_add_last (&curDoi->sdiHead, scl_sdi);
+	} else
+	{
+		SLOG_ERROR ("NULL LD head");
+	}
+
+	return (scl_sdi);
 }
 
 /************************************************************************/
@@ -284,16 +358,76 @@ SCL_DAI *scl_dai_add (
 	SCL_DAI *scl_dai = NULL;	/* assume failure	*/
 	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
 	/* All higher level linked lists must be initialized.	*/
-	if (ldHead
-		&& ldHead->lnHead)
+	if (ldHead && ldHead->lnHead)
 	{
+		//find current ln, return if null found
+		SCL_LN *curLn = list_find_last(ldHead->lnHead);
+		if (!curLn){
+			SLOG_ERROR ("Cannot find LN from LD");
+			return (scl_dai);
+		} 
+		//find current doi, return if null found
+		SCL_DOI *curDoi = list_find_last(curLn->doiHead);
+		if (!curDoi) {
+			SLOG_ERROR ("Cannot find DOI from LN");
+			return (scl_dai);
+		}				
+		
+		//分两种情况,DAI在SDI下级,DAI在DOI下级
+		
+		/* DAI 的头结点指向本级LN*/
+		SLOG_DEBUG("SCL_DAI_ADD last DOI address 0x%p, doiname: %s, ln: %s, ld: %s", curDoi, curDoi->name, curLn->desc, ldHead->desc);
 		scl_dai = (SCL_DAI *) chk_calloc (1, sizeof (SCL_DAI));
-		/* Add DAI to front of DAI List.	*/
-		list_add_first (&ldHead->lnHead->doiHead->daiHead, scl_dai);
+		/* Add DAI to front of DOI List.	*/
+		list_add_last (&curDoi->daiHead, scl_dai);
 	}
 	else
 	{
-		SLOG_ERROR ("Cannot add DAI to NULL LN");
+		SLOG_ERROR ("Cannot add DAI to NULL DOI");
+	}
+	return (scl_dai);
+}
+
+/************************************************************************/
+/*			scl_sdi_dai_add					*/
+/* Allocates a SCL_DAI struct						*/
+/* and adds it to the linked list "daiHead" in LN_DOI_SDI_DAI.			*/
+/************************************************************************/
+SCL_DAI *scl_sdi_dai_add(SCL_INFO *scl_info) {
+	SCL_DAI *scl_dai = NULL;	/* assume failure	*/
+	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
+	/* All higher level linked lists must be initialized.	*/
+	if (ldHead && ldHead->lnHead)
+	{
+		//find current ln, return if null found
+		SCL_LN *curLn = list_find_last(ldHead->lnHead);
+		if (!curLn){
+			SLOG_ERROR ("Cannot find LN from LD");
+			return (scl_dai);
+		} 
+		//find current doi, return if null found
+		SCL_DOI *curDoi = list_find_last(curLn->doiHead);
+		if (!curDoi) {
+			SLOG_ERROR ("Cannot find DOI from LN");
+			return (scl_dai);
+		}				
+		
+		SCL_SDI* curSdi = list_find_last(curDoi->sdiHead);
+		if (!curSdi) {
+			SLOG_ERROR ("Cannot find DOI from LN");
+			return (scl_dai);
+		}		
+		//分两种情况, case DAI在SDI下级
+		
+		/* DAI 的头结点指向本级SDI*/
+		SLOG_DEBUG("SCL_sdi_dai_add last SDI address 0x%p. SDI: %s doiname: %s, ln: %s, ld: %s", curDoi, curSdi->desc, curDoi->name, curLn->desc, ldHead->desc);
+		scl_dai = (SCL_DAI *) chk_calloc (1, sizeof (SCL_DAI));
+		/* Add DAI to front of DOI List.	*/
+		list_add_last (&curSdi->sdaiHead, scl_dai);
+	}
+	else
+	{
+		SLOG_ERROR ("Cannot add DAI to NULL DOI");
 	}
 	return (scl_dai);
 }
@@ -315,7 +449,7 @@ SCL_DATASET *scl_dataset_add (
 	{
 		scl_dataset = (SCL_DATASET *) chk_calloc (1, sizeof (SCL_DATASET));
 		/* Add DATASET to front of DATASET List.	*/
-		list_add_first (&ldHead->lnHead->datasetHead, scl_dataset);
+		list_add_last (&ldHead->lnHead->datasetHead, scl_dataset);
 	}
 	else
 	{
@@ -396,7 +530,7 @@ SCL_GCB *scl_gcb_add (
 	{
 		scl_gcb = (SCL_GCB *) chk_calloc (1, sizeof (SCL_GCB));
 		/* Add GCB to front of GCB List.	*/
-		list_add_first (&ldHead->lnHead->gcbHead, scl_gcb);
+		list_add_last (&ldHead->lnHead->gcbHead, scl_gcb);
 	}
 	else
 	{

@@ -144,7 +144,8 @@ static ST_VOID _OptFlds_SFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _RptEnabled_SFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _DOI_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _SDI_SEFun (SX_DEC_CTRL *sxDecCtrl);
-static ST_VOID _DAI_SEFun (SX_DEC_CTRL *sxDecCtrl);
+static ST_VOID _DOI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl);
+static ST_VOID _SDI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _DAI_Val_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _DataTypeTemplates_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _LNodeType_SEFun (SX_DEC_CTRL *sxDecCtrl);
@@ -268,26 +269,26 @@ SX_ELEMENT BayElements[] =
 
 SX_ELEMENT ConductingEquipmentElements[] = 
 {
-	{"LNode",      	SX_ELF_CSTART|SX_ELF_OPTRPT,	_LNode_SFun, NULL, 0},
+	{"LNode",      			SX_ELF_CSTART|SX_ELF_OPTRPT,	_LNode_SFun, NULL, 0},
 	//{"Terminal",     SX_ELF_CSTART|SX_ELF_OPTRPT,	_Terminal_SFun, NULL, 0},
 	//{"SubEquipment",     SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SubEquipment_SEFun, NULL, 0}
 };
 
 SX_ELEMENT ConnectivityNodeElements[] = 
 {
-	{"LNode",      	SX_ELF_CSTART|SX_ELF_OPTRPT,	_LNode_SFun, NULL, 0}
+	{"LNode",      			 SX_ELF_CSTART|SX_ELF_OPTRPT,	_LNode_SFun, NULL, 0}
 };
 
 SX_ELEMENT FunctionElements[] = 
 {
-	{"LNode",      	SX_ELF_CSTART|SX_ELF_OPTRPT,	_LNode_SFun, NULL, 0},
-	{"SubFunction",     SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SubFunction_SEFun, NULL, 0},
+	{"LNode",      			 SX_ELF_CSTART|SX_ELF_OPTRPT,	_LNode_SFun, NULL, 0},
+	{"SubFunction",     	 SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SubFunction_SEFun, NULL, 0},
 	{"GeneralEquipment",     SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_GeneralEquipment_SEFun, NULL, 0}
 };
 
 SX_ELEMENT SubFunctionElements[] = 
 {
-	{"LNode",      	SX_ELF_CSTART|SX_ELF_OPTRPT,	_LNode_SFun, NULL, 0},
+	{"LNode",      			 SX_ELF_CSTART|SX_ELF_OPTRPT,	_LNode_SFun, NULL, 0},
 	{"GeneralEquipment",     SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_GeneralEquipment_SEFun, NULL, 0}
 };
 /************************************************************************/
@@ -295,8 +296,8 @@ SX_ELEMENT SubFunctionElements[] =
 /************************************************************************/
 SX_ELEMENT CommunicationElements[] = 
 {
-	{"Private",   		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_Communication_PortMapFun, NULL, 0},
-	{"SubNetwork",		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SubNetwork_SEFun, NULL, 0}
+	{"Private",   			SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_Communication_PortMapFun, NULL, 0},
+	{"SubNetwork",			SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SubNetwork_SEFun, NULL, 0}
 };
 
 SX_ELEMENT SubNetworkElements[] = 
@@ -308,43 +309,43 @@ SX_ELEMENT SubNetworkElements[] =
 SX_ELEMENT ConnectedAPElements[] = 
 {
 	/* DEBUG: add "Address". */
-	{"Address",	    SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_Address_SEFun, NULL, 0},
-	{"GSE",	      	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_GSE_SEFun, NULL, 0},
-	{"SMV",	      	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SMV_SEFun, NULL, 0},
+	{"Address",	    		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_Address_SEFun, NULL, 0},
+	{"GSE",	      			SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_GSE_SEFun, NULL, 0},
+	{"SMV",	      			SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SMV_SEFun, NULL, 0},
 	/* add PhyConn and connections 获取端口信息*/
-	{"PhysConn",	    SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_S1_ConnPortFun, NULL, 0},
+	{"PhysConn",	    	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_S1_ConnPortFun, NULL, 0},
 };
 
 SX_ELEMENT AddressElements[] = 
 {
-	{"P",      	SX_ELF_CSTARTEND|SX_ELF_OPTRPT, 	_Address_P_SEFun, NULL, 0}
+	{"P",      				SX_ELF_CSTARTEND|SX_ELF_OPTRPT, 	_Address_P_SEFun, NULL, 0}
 };
 
 SX_ELEMENT GSEElements[] = 
 {
-	{"Address",      	SX_ELF_CSTARTEND|SX_ELF_OPT, _GSE_Address_SEFun, NULL, 0},
-	{"MinTime",      	SX_ELF_CEND|SX_ELF_OPT, 	 _GSE_MinTime_SEFun, NULL, 0},
-	{"MaxTime",      	SX_ELF_CEND|SX_ELF_OPT, 	 _GSE_MaxTime_SEFun, NULL, 0}
+	{"Address",      		SX_ELF_CSTARTEND|SX_ELF_OPT, _GSE_Address_SEFun, NULL, 0},
+	{"MinTime",      		SX_ELF_CEND|SX_ELF_OPT, 	 _GSE_MinTime_SEFun, NULL, 0},
+	{"MaxTime",      		SX_ELF_CEND|SX_ELF_OPT, 	 _GSE_MaxTime_SEFun, NULL, 0}
 };
 
 SX_ELEMENT GSEAddressElements[] = 
 {
-	{"P",      		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_GSE_Address_P_SEFun, NULL, 0}
+	{"P",      				SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_GSE_Address_P_SEFun, NULL, 0}
 };
 
 SX_ELEMENT SMVElements[] = 
 {
-	{"Address",      	SX_ELF_CSTARTEND|SX_ELF_OPT, 	_SMV_Address_SEFun, NULL, 0}
+	{"Address",      		SX_ELF_CSTARTEND|SX_ELF_OPT, 	_SMV_Address_SEFun, NULL, 0}
 };
 
 SX_ELEMENT SMVAddressElements[] = 
 {
-	{"P",      		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SMV_Address_P_SEFun, NULL, 0}
+	{"P",      				SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SMV_Address_P_SEFun, NULL, 0}
 };
 
 SX_ELEMENT ConnectionElements[] = 
 {
-	{"P",      		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_Connection_P_Port_SEFun, NULL, 0}
+	{"P",      				SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_Connection_P_Port_SEFun, NULL, 0}
 };
 /************************************************************************/
 /* Tables for mapping "IED" elements.					*/
@@ -352,91 +353,93 @@ SX_ELEMENT ConnectionElements[] =
 SX_ELEMENT IEDElements[] = 
 {
 	//private 包括IED的CRC校验码,以及南网signal map
-	{"Private",        SX_ELF_CSTARTEND|SX_ELF_OPTRPT, 	_AccessPoint_PrivateFun, NULL, 0},
+	{"Private",        		SX_ELF_CSTARTEND|SX_ELF_OPTRPT, _AccessPoint_PrivateFun, NULL, 0},
 	//regardless <Services>,直接从<AccessPoint >开始
-	{"AccessPoint",    SX_ELF_CSTARTEND|SX_ELF_RPT, 	_AccessPoint_SEFun, NULL, 0}
+	{"AccessPoint",    		SX_ELF_CSTARTEND|SX_ELF_RPT, 	_AccessPoint_SEFun, NULL, 0}
 };
 //===========================AccessPoint Start==========================================//
 SX_ELEMENT AccessPointElements[] = 
 {
-	{"Server",      	SX_ELF_CSTARTEND|SX_ELF_OPT, 		_Server_SEFun, NULL, 0}
+	{"Server",      		SX_ELF_CSTARTEND|SX_ELF_OPT, 	_Server_SEFun, NULL, 0}
 };
 
 SX_ELEMENT ServerElements[] = 
 {
-	{"LDevice",      	SX_ELF_CSTARTEND|SX_ELF_RPT,	_LDevice_SEFun, NULL, 0}
+	{"LDevice",      		SX_ELF_CSTARTEND|SX_ELF_RPT,	_LDevice_SEFun, NULL, 0}
 };
 
 SX_ELEMENT LDeviceElements[] = 
 {
-	{"LN0",      		SX_ELF_CSTARTEND,				_LN_SEFun, NULL, 0},
-	{"LN",      		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_LN_SEFun, NULL, 0}
+	{"LN0",      			SX_ELF_CSTARTEND,				_LN_SEFun, NULL, 0},
+	{"LN",      			SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_LN_SEFun, NULL, 0}
 };
 
 SX_ELEMENT LN0Elements[] = 
 {
-	{"DataSet",  		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DataSet_SEFun, NULL, 0},
-	{"ReportControl",	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_ReportControl_SEFun, NULL, 0},
-	{"DOI",		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DOI_SEFun, NULL, 0}, 
+	{"DataSet",  			SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DataSet_SEFun, NULL, 0},
+	{"ReportControl",		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_ReportControl_SEFun, NULL, 0},
+	{"DOI",					SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DOI_SEFun, NULL, 0}, 
 	{"SampledValueControl",	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SampledValueControl_SEFun, NULL, 0},
-	{"LogControl",	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_LogControl_SEFun, NULL, 0},
-	{"SettingControl",	SX_ELF_CSTART|SX_ELF_OPTRPT,	_SettingControl_SFun, NULL, 0},
-	{"GSEControl",	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_GSEControl_SEFun, NULL, 0}
+	{"LogControl",			SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_LogControl_SEFun, NULL, 0},
+	{"SettingControl",		SX_ELF_CSTART|SX_ELF_OPTRPT,	_SettingControl_SFun, NULL, 0},
+	{"GSEControl",			SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_GSEControl_SEFun, NULL, 0}
 };
 
 SX_ELEMENT GSEControlElements[] =
 {
-	{"IEDName",  		SX_ELF_CEND|SX_ELF_OPTRPT,	_IEDName_EFun, NULL, 0}
+	{"IEDName",  			SX_ELF_CEND|SX_ELF_OPTRPT,		_IEDName_EFun, NULL, 0}
 };
 
+//modify by tangkai LN节点下,不会出现DOI以外的内容,暂时屏蔽处理
 SX_ELEMENT LNElements[] = 
 {
-	{"DataSet",  		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DataSet_SEFun, NULL, 0},
-	{"ReportControl",	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_ReportControl_SEFun, NULL, 0},
-	{"DOI",		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DOI_SEFun, NULL, 0}, 
-	{"SampledValueControl",	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SampledValueControl_SEFun, NULL, 0},
-	{"LogControl",	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_LogControl_SEFun, NULL, 0}
+	// {"DataSet",  			SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DataSet_SEFun, NULL, 0},
+	// {"ReportControl",		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_ReportControl_SEFun, NULL, 0},
+	{"DOI",					SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DOI_SEFun, NULL, 0}, 
+	// {"SampledValueControl",	SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SampledValueControl_SEFun, NULL, 0},
+	// {"LogControl",			SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_LogControl_SEFun, NULL, 0}
 };
 
 SX_ELEMENT DataSetElements[] = 
 {
-	{"FCDA",  		SX_ELF_CSTART|SX_ELF_RPT,	_FCDA_SFun, NULL, 0}
+	{"FCDA",  				SX_ELF_CSTART|SX_ELF_RPT,		_FCDA_SFun, NULL, 0}
 };
 
 SX_ELEMENT ReportControlElements[] = 
 {
-	{"TrgOps",  		SX_ELF_CSTART|SX_ELF_OPT,	_TrgOps_SFun, NULL, 0},
-	{"OptFields",		SX_ELF_CSTART,			_OptFlds_SFun, NULL, 0},
-	{"RptEnabled",	SX_ELF_CSTART|SX_ELF_OPT,	_RptEnabled_SFun, NULL, 0}
+	{"TrgOps",  			SX_ELF_CSTART|SX_ELF_OPT,		_TrgOps_SFun, 	NULL, 0},
+	{"OptFields",			SX_ELF_CSTART,					_OptFlds_SFun, 	NULL, 0},
+	{"RptEnabled",			SX_ELF_CSTART|SX_ELF_OPT,		_RptEnabled_SFun, NULL, 0}
 };
 
 SX_ELEMENT LogControlElements[] = 
 {
-	{"TrgOps",  		SX_ELF_CSTART|SX_ELF_OPT,	_TrgOps_SFun, NULL, 0}
+	{"TrgOps",  			SX_ELF_CSTART|SX_ELF_OPT,		_TrgOps_SFun, NULL, 0}
 };
 
 SX_ELEMENT SampledValueControlElements[] = 
 {
-	{"IEDName",  		SX_ELF_CEND|SX_ELF_OPTRPT,	_IEDName2_EFun, NULL, 0},
-	{"SmvOpts",  		SX_ELF_CSTART,			_SmvOpts_SFun, NULL, 0}
+	{"IEDName",  			SX_ELF_CEND|SX_ELF_OPTRPT,		_IEDName2_EFun, NULL, 0},
+	{"SmvOpts",  			SX_ELF_CSTART,					_SmvOpts_SFun, NULL, 0}
 };
 
 SX_ELEMENT DOIElements[] = 
 {
-	{"SDI",  		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SDI_SEFun, NULL, 0},
-	{"DAI",  		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DAI_SEFun, NULL, 0}
+	{"SDI",  				SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SDI_SEFun, NULL, 0},
+	{"DAI",  				SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DOI_DAI_SEFun, NULL, 0}
 };
 
 /* SDI can be nested under itself indefinitely */
 SX_ELEMENT SDIElements[] = 
 {
-	{"SDI",  		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SDI_SEFun, NULL, 0},
-	{"DAI",  		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DAI_SEFun, NULL, 0}
+	//SDI下面不会再有SDI节点,先注释掉
+	//{"SDI",  				SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SDI_SEFun, NULL, 0},
+	{"DAI",  				SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SDI_DAI_SEFun, NULL, 0}
 };
 
 SX_ELEMENT DAIElements[] = 
 {
-	{"Val",  		SX_ELF_CSTARTEND|SX_ELF_OPT,	_DAI_Val_SEFun, NULL, 0}
+	{"Val",  				SX_ELF_CSTARTEND|SX_ELF_OPT,	_DAI_Val_SEFun, NULL, 0}
 };
 
 /************************************************************************/
@@ -444,41 +447,41 @@ SX_ELEMENT DAIElements[] =
 /************************************************************************/
 SX_ELEMENT DataTypeTemplatesElements[] = 
 {
-	{"LNodeType",  	SX_ELF_CSTARTEND|SX_ELF_RPT,	_LNodeType_SEFun, NULL, 0},
-	{"DOType",  		SX_ELF_CSTARTEND|SX_ELF_RPT,	_DOType_SEFun, NULL, 0},
-	{"DAType",  		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DAType_SEFun, NULL, 0},
-	{"EnumType", 		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_EnumType_SEFun, NULL, 0}
+	{"LNodeType",  			SX_ELF_CSTARTEND|SX_ELF_RPT,	_LNodeType_SEFun, NULL, 0},
+	{"DOType",  			SX_ELF_CSTARTEND|SX_ELF_RPT,	_DOType_SEFun, NULL, 0},
+	{"DAType",  			SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DAType_SEFun, NULL, 0},
+	{"EnumType", 			SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_EnumType_SEFun, NULL, 0}
 };
 
 SX_ELEMENT LNodeTypeElements[] = 
 {
-	{"DO",  		SX_ELF_CSTART|SX_ELF_RPT,	_DO_SFun, NULL, 0}
+	{"DO",  				SX_ELF_CSTART|SX_ELF_RPT,	_DO_SFun, NULL, 0}
 };
 
 SX_ELEMENT DOTypeElements[] = 
 {
-	{"DA",  		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DA_SEFun, NULL, 0},
-	{"SDO",  		SX_ELF_CSTART|SX_ELF_OPTRPT,	_SDO_SFun, NULL, 0}
+	{"DA",  				SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DA_SEFun, NULL, 0},
+	{"SDO",  				SX_ELF_CSTART|SX_ELF_OPTRPT,	_SDO_SFun, NULL, 0}
 };
 
 SX_ELEMENT DAElements[] = 
 {
-	{"Val",  		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DA_Val_SEFun, NULL, 0}
+	{"Val",  				SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_DA_Val_SEFun, NULL, 0}
 };
 
 SX_ELEMENT DATypeElements[] = 
 {
-	{"BDA",  		SX_ELF_CSTARTEND|SX_ELF_RPT,	_BDA_SEFun, NULL, 0}
+	{"BDA",  				SX_ELF_CSTARTEND|SX_ELF_RPT,	_BDA_SEFun, NULL, 0}
 };
 
 SX_ELEMENT BDAElements[] = 
 {
-	{"Val",  		SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_BDA_Val_SEFun, NULL, 0}
+	{"Val",  				SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_BDA_Val_SEFun, NULL, 0}
 };
 
 SX_ELEMENT EnumTypeElements[] = 
 {
-	{"EnumVal",  		SX_ELF_CSTARTEND|SX_ELF_RPT,	_EnumVal_SEFun, NULL, 0}
+	{"EnumVal",  			SX_ELF_CSTARTEND|SX_ELF_RPT,	_EnumVal_SEFun, NULL, 0}
 };
 
 /************************************************************************/
@@ -742,7 +745,7 @@ ST_RET scl_parse (ST_CHAR *xmlFileName, ST_CHAR *iedName,
 		sizeof (sclStartElements)/sizeof(SX_ELEMENT), sclStartElements,
 		&sclDecCtrl, _scl_unknown_el_start, _scl_unknown_el_end);
 
-	SLOG_DEBUG ("iedName: %s", sclDecCtrl.sclInfo->lIEDHead->iedName);
+	SLOG_DEBUG ("scl_parse return %d iedName: %s", ret ,sclDecCtrl.sclInfo->lIEDHead->iedName);
 	/* NOTE: sx_parseEx_mt doesn't log error if file open fails, so log here*/
 	/* It may not log some other errors, so log any other error here too.	*/
 	if (ret == SX_FILE_NOT_FOUND)
@@ -1632,14 +1635,24 @@ static ST_VOID _DataSet_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
 		sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
-
-		scl_dataset = scl_dataset_add (sclDecCtrl->sclInfo);
+		SCL_INFO *scl_info = sclDecCtrl->sclInfo;
+		
+		//检查DataSet 出现位置的合法性,不应该出现在LN节点中
+		// SCL_LN *curLn = list_find_last(scl_info->accessPointHead->ldHead->lnHead);
+		// if (strcasecmp(curLn->lnClass, "LLN0") != 0) {
+		// 	SLOG_WARN ("DataSet must not occur LN Element return");
+		// 	// sx_pop (sxDecCtrl);
+		// 	return;
+		// }
+		
+		scl_dataset = scl_dataset_add (scl_info);
 		if (scl_dataset == NULL)
 		{
 			scl_stop_parsing (sxDecCtrl, "scl_dataset_add", SX_USER_ERROR);
 			return;
 		}
 		
+		//dataSet 一般包括name和desc
 		/* start optional attributes */
 		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &desc, required);
 		if (ret == SD_SUCCESS)
@@ -1648,11 +1661,11 @@ static ST_VOID _DataSet_SEFun (SX_DEC_CTRL *sxDecCtrl)
 
 		/* start required attributes */
 		required = SD_TRUE;
+		//scl_dataset 为最新地址
 		ret = scl_get_attr_copy (sxDecCtrl, "name", scl_dataset->name, (sizeof(scl_dataset->name)-1), required);
 		if (ret != SD_SUCCESS)
 			return;
 		/* end required attributes */
-
 		sx_push (sxDecCtrl, sizeof(DataSetElements)/sizeof(SX_ELEMENT), DataSetElements, SD_FALSE);
 	}
 	else
@@ -1673,42 +1686,45 @@ static ST_VOID _FCDA_SFun (SX_DEC_CTRL *sxDecCtrl)
 
 	sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
 	scl_info = sclDecCtrl->sclInfo;
+	if (sxDecCtrl->reason == SX_ELEMENT_START)
+	{		
+		scl_fcda = scl_fcda_add (scl_info);
+		if (scl_fcda == NULL)
+		{
+			scl_stop_parsing (sxDecCtrl, "scl_fcda_add", SX_USER_ERROR);
+			return;
+		}
 
-	scl_fcda = scl_fcda_add (scl_info);
-	if (scl_fcda == NULL)
-	{
-		scl_stop_parsing (sxDecCtrl, "scl_fcda_add", SX_USER_ERROR);
-		return;
-	}
+		/* start optional attributes */
+		ret = scl_get_attr_copy (sxDecCtrl, "ldInst",  scl_fcda->ldInst,  (sizeof(scl_fcda->ldInst)-1), required);
+		ret = scl_get_attr_copy (sxDecCtrl, "prefix",  scl_fcda->prefix,  (sizeof(scl_fcda->prefix)-1), required);
+		ret = scl_get_attr_copy (sxDecCtrl, "lnInst",  scl_fcda->lnInst,  (sizeof(scl_fcda->lnInst)-1), required);
+		ret = scl_get_attr_copy (sxDecCtrl, "lnClass", scl_fcda->lnClass, (sizeof(scl_fcda->lnClass)-1), required);
+		ret = scl_get_attr_copy (sxDecCtrl, "doName",  scl_fcda->doName,  (sizeof(scl_fcda->doName)-1), required);
+		ret = scl_get_attr_copy (sxDecCtrl, "daName",  scl_fcda->daName,  (sizeof(scl_fcda->daName)-1), required);
+		/* end optional attributes */
 
-	/* start optional attributes */
-	ret = scl_get_attr_copy (sxDecCtrl, "ldInst",  scl_fcda->ldInst,  (sizeof(scl_fcda->ldInst)-1), required);
-	ret = scl_get_attr_copy (sxDecCtrl, "prefix",  scl_fcda->prefix,  (sizeof(scl_fcda->prefix)-1), required);
-	ret = scl_get_attr_copy (sxDecCtrl, "lnInst",  scl_fcda->lnInst,  (sizeof(scl_fcda->lnInst)-1), required);
-	ret = scl_get_attr_copy (sxDecCtrl, "lnClass", scl_fcda->lnClass, (sizeof(scl_fcda->lnClass)-1), required);
-	ret = scl_get_attr_copy (sxDecCtrl, "doName",  scl_fcda->doName,  (sizeof(scl_fcda->doName)-1), required);
-	ret = scl_get_attr_copy (sxDecCtrl, "daName",  scl_fcda->daName,  (sizeof(scl_fcda->daName)-1), required);
-	/* end optional attributes */
+		/* start required attributes */
+		required = SD_TRUE;
+		ret = scl_get_attr_copy (sxDecCtrl, "fc", scl_fcda->fc, (sizeof(scl_fcda->fc)-1), required);
+		if (ret != SD_SUCCESS)
+			return;
+		/* end required attributes */
 
-	/* start required attributes */
-	required = SD_TRUE;
-	ret = scl_get_attr_copy (sxDecCtrl, "fc", scl_fcda->fc, (sizeof(scl_fcda->fc)-1), required);
-	if (ret != SD_SUCCESS)
-		return;
-	/* end required attributes */
+		/* Construct domain name from SCL info	*/
+		/* ASSUME nameStructure="IEDName" (domain name = IED name + LDevice inst)*/
+		/* nameStructure="FuncName" is OBSOLETE.				*/
+		if (strlen(sclDecCtrl->iedName) + strlen(scl_fcda->ldInst) <= MAX_IDENT_LEN)
+		{
+			strcpy (scl_fcda->domName, sclDecCtrl->iedName);
+			strcat (scl_fcda->domName, scl_fcda->ldInst);
+		}
+		else
+		{
+			SLOG_ERROR ("Cannot add FCDA: constructed domain name too long");
+			scl_stop_parsing (sxDecCtrl, "_FCDA_SFun", SX_USER_ERROR);
+		}
 
-	/* Construct domain name from SCL info	*/
-	/* ASSUME nameStructure="IEDName" (domain name = IED name + LDevice inst)*/
-	/* nameStructure="FuncName" is OBSOLETE.				*/
-	if (strlen(sclDecCtrl->iedName) + strlen(scl_fcda->ldInst) <= MAX_IDENT_LEN)
-	{
-		strcpy (scl_fcda->domName, sclDecCtrl->iedName);
-		strcat (scl_fcda->domName, scl_fcda->ldInst);
-	}
-	else
-	{
-		SLOG_ERROR ("Cannot add FCDA: constructed domain name too long");
-		scl_stop_parsing (sxDecCtrl, "_FCDA_SFun", SX_USER_ERROR);
 	}
 }
 
@@ -1725,11 +1741,19 @@ static ST_VOID _ReportControl_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	ST_CHAR *desc;
 
 	sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
-
+	SCL_INFO * scl_info = sclDecCtrl->sclInfo;
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
+		//检查ReportControl 出现位置的合法性,不应该出现在LN节点中
+		// SCL_LN *curLn = list_find_last(scl_info->accessPointHead->ldHead->lnHead);
+		// SLOG_WARN("curLn->lnClass is %s", curLn->lnClass);
+		// if (strcasecmp(curLn->lnClass, "LLN0") != 0) {
+		// 	SLOG_WARN ("ReportControl must not occur LN Element return");
+		// 	// sx_pop (sxDecCtrl);
+		// 	return;
+		// }		
 		/* Alloc struct, save ptr in sclDecCtrl, & set local ptr to it.	*/
-		SCL_RCB *scl_rcb = sclDecCtrl->scl_rcb = scl_rcb_add (sclDecCtrl->sclInfo);
+		SCL_RCB *scl_rcb = sclDecCtrl->scl_rcb = scl_rcb_add (scl_info);
 		if (scl_rcb == NULL)
 		{
 			scl_stop_parsing (sxDecCtrl, "scl_rcb_add", SX_USER_ERROR);
@@ -2194,12 +2218,21 @@ static ST_VOID _DOI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	ST_RET ret;
 
 	sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
+	SCL_ACCESSPOINT *apHead = sclDecCtrl->sclInfo->accessPointHead;
+	if (apHead == NULL)
+	{
+		scl_stop_parsing (sxDecCtrl, "_DOI_SEFun", SX_INTERNAL_NULL_POINTER);
+		return;		
+	}
 
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
-		SCL_DOI *doi = (SCL_DOI *) chk_calloc (1, sizeof (SCL_DOI));
-		list_add_first (&sclDecCtrl->sclInfo->accessPointHead->ldHead->lnHead->doiHead, doi);
 
+		SCL_DOI *doi; 
+		if ( (doi = scl_doi_add(sclDecCtrl->sclInfo)) == NULL) {
+			scl_stop_parsing (sxDecCtrl, "_DOI_SEFun", SX_INTERNAL_NULL_POINTER);
+			return;
+		}
 		/* start required attributes */
 		ret = scl_get_attr_copy (sxDecCtrl, "name", doi->name, (sizeof(doi->name)-1), SCL_ATTR_REQUIRED);
 		if (ret)
@@ -2223,6 +2256,7 @@ static ST_VOID _DOI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 
 		/* Start creation of flattened name */
 		sclDecCtrl->flattened[0] = '\0';	/* CRITICAL: start with empty flatname*/
+		
 		sx_push (sxDecCtrl, sizeof(DOIElements)/sizeof(SX_ELEMENT), DOIElements, SD_FALSE);    
 	}
 	else
@@ -2246,9 +2280,11 @@ static ST_VOID _SDI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
-		SCL_SDI *sdi = (SCL_SDI *) chk_calloc (1, sizeof (SCL_SDI));
-		list_add_first (&sclDecCtrl->sclInfo->accessPointHead->ldHead->lnHead->doiHead->sdiHead, sdi);
-
+		SCL_SDI *sdi =scl_sdi_add(sclDecCtrl->sclInfo);
+		if (sdi == NULL) {
+			scl_stop_parsing  (sxDecCtrl, "_SDI_SEFun", SX_INTERNAL_NULL_POINTER);
+			return;
+		}
 		/* start optional attributes */
 		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &name, SCL_ATTR_OPTIONAL);
 		if (ret == SD_SUCCESS)
@@ -2277,8 +2313,8 @@ static ST_VOID _SDI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 			return;
 		}
 		strcpy(sdi->flattened,sclDecCtrl->flattened);
-
-
+		SLOG_DEBUG ("_SDI_SEFun Parse: name : %s", sdi->flattened);
+		//continue searching dai elements
 		sx_push (sxDecCtrl, sizeof(SDIElements)/sizeof(SX_ELEMENT), SDIElements, SD_FALSE);    
 	}
 	else /* reason = SX_ELEMENT_END */
@@ -2295,10 +2331,10 @@ static ST_VOID _SDI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 }
 
 /************************************************************************/
-/*			_DAI_SEFun					*/
+/*			_DOI_DAI_SEFun 处理DOI节点下的DAI					*/
 /************************************************************************/
 
-static ST_VOID _DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
+static ST_VOID _DOI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 {
 	SCL_DEC_CTRL *sclDecCtrl;
 	ST_CHAR *ix;
@@ -2311,13 +2347,16 @@ static ST_VOID _DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
+		SX_ELEMENT_TBL_CTRL *itemTblCtrl;
+		itemTblCtrl = &sxDecCtrl->items[sxDecCtrl->itemStackLevel];
+			
 		SCL_DAI *scl_dai;
 		if ((scl_dai = sclDecCtrl->scl_dai = scl_dai_add (sclDecCtrl->sclInfo)) == NULL)
 		{
-			scl_stop_parsing (sxDecCtrl, "scl_enumtype_create", SX_USER_ERROR);
+			scl_stop_parsing (sxDecCtrl, "_DOI_DAI_SEFun", SX_INTERNAL_NULL_POINTER);
 			return;
 		}
-
+		
 		/* start optional attributes */
 		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &name, SCL_ATTR_OPTIONAL);
 		if (ret == SD_SUCCESS)
@@ -2345,13 +2384,16 @@ static ST_VOID _DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		if (construct_flattened (sclDecCtrl->flattened, sizeof(sclDecCtrl->flattened), name, ix)
 			!= SD_SUCCESS)
 		{	/* error already logged.	*/
-			scl_stop_parsing (sxDecCtrl, "_DAI_SEFun", SX_USER_ERROR);
+			scl_stop_parsing (sxDecCtrl, "_DOI_DAI_SEFun", SX_USER_ERROR);
 			return;
 		}
 
-		SLOG_DEBUG ("SCL PARSE: Appended to flattened variable: '%s'", sclDecCtrl->flattened);
-		strcpy (scl_dai->flattened, sclDecCtrl->flattened);
+		strncpy_safe (scl_dai->flattened, sclDecCtrl->flattened, MAX_FLAT_LEN);
+		SLOG_DEBUG(" _DOI_DAI_SEFun name %s flattened %s sAddr %s", name, scl_dai->flattened, scl_dai->sAddr);
+
+		//只有DOI的DAI element需要解析
 		sx_push (sxDecCtrl, sizeof(DAIElements)/sizeof(SX_ELEMENT), DAIElements, SD_FALSE);    
+		
 	}
 	else /* reason = SX_ELEMENT_END */
 	{
@@ -2360,13 +2402,90 @@ static ST_VOID _DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		if (p != NULL)
 			*p = 0;
 		else
-			sclDecCtrl->flattened[0] = 0; //added by luolinglu
+			sclDecCtrl->flattened[0] = '\0'; //added by luolinglu
 
 		SLOG_DEBUG ("SCL PARSE: Removed last item from flattened variable: '%s'", sclDecCtrl->flattened);
 		sx_pop (sxDecCtrl);
 	}
 }
 
+/************************************************************************/
+/*			_SDI_DAI_SEFun 处理SDI节点下的DAI					*/
+/************************************************************************/
+
+static ST_VOID _SDI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
+{
+	SCL_DEC_CTRL *sclDecCtrl;
+	ST_CHAR *ix;
+	ST_CHAR *name;
+	ST_RET ret;
+	ST_CHAR *p;
+	ST_BOOLEAN required = SD_FALSE;
+
+	sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
+
+	if (sxDecCtrl->reason == SX_ELEMENT_START)
+	{
+		SX_ELEMENT_TBL_CTRL *itemTblCtrl;
+		itemTblCtrl = &sxDecCtrl->items[sxDecCtrl->itemStackLevel];
+			
+		SCL_DAI *scl_dai;
+		if ((scl_dai = sclDecCtrl->scl_dai = scl_sdi_dai_add (sclDecCtrl->sclInfo)) == NULL)
+		{
+			scl_stop_parsing (sxDecCtrl, "_SDI_DAI_SEFun", SX_INTERNAL_NULL_POINTER);
+			return;
+		}
+		
+		/* start optional attributes */
+		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &name, SCL_ATTR_OPTIONAL);
+		if (ret == SD_SUCCESS)
+			scl_dai->desc = chk_strdup (name);	/* Alloc & copy desc string	*/
+
+		ret = scl_get_attr_ptr (sxDecCtrl, "ix", &ix, required);
+		if (ret)
+			ix = NULL;
+		ret = scl_get_attr_copy (sxDecCtrl, "sAddr", scl_dai->sAddr, (sizeof(scl_dai->sAddr)-1), required);
+		ret = scl_get_attr_copy (sxDecCtrl, "valKind", scl_dai->valKind, (sizeof(scl_dai->valKind)-1), required);
+		if (ret)
+			strcpy (scl_dai->valKind, "Set"); /* default */
+		/* end optional attributes */
+
+		/* start required attributes */
+		// required = SD_TRUE;
+		ret = scl_get_attr_ptr (sxDecCtrl, "name", &name, SCL_ATTR_REQUIRED);
+		if (ret != SD_SUCCESS)
+		{
+			return;
+		}
+		/* end required attributes */
+
+		/* Continue creation of flattened name */
+		if (construct_flattened (sclDecCtrl->flattened, sizeof(sclDecCtrl->flattened), name, ix)
+			!= SD_SUCCESS)
+		{	/* error already logged.	*/
+			scl_stop_parsing (sxDecCtrl, "_SDI_DAI_SEFun", SX_USER_ERROR);
+			return;
+		}
+
+		strncpy_safe (scl_dai->flattened, sclDecCtrl->flattened, MAX_FLAT_LEN);
+		SLOG_DEBUG(" _SDI_DAI_SEFun name %s flattened %s sAddr %s", name, scl_dai->flattened, scl_dai->sAddr);
+	
+		sx_push (sxDecCtrl, sizeof(DAIElements)/sizeof(SX_ELEMENT), DAIElements, SD_FALSE);    
+		
+	}
+	else /* reason = SX_ELEMENT_END */
+	{
+		/* Remove the last item from the flattened string */
+		p = strrchr(sclDecCtrl->flattened, '$');
+		if (p != NULL)
+			*p = 0;
+		else
+			sclDecCtrl->flattened[0] = '\0'; //added by luolinglu
+
+		SLOG_DEBUG ("SCL PARSE: Removed last item from flattened variable: '%s'", sclDecCtrl->flattened);
+		sx_pop (sxDecCtrl);
+	}
+}
 /************************************************************************/
 /*			_DAI_Val_SEFun					*/
 /* Sets "sGroup" and "Val" in sclDecCtrl->scl_dai.			*/

@@ -426,7 +426,7 @@ typedef enum {
 	typedef struct
 	{
 		DBL_LNK l;
-		ST_CHAR flattened[MAX_FLAT_LEN+1];	/* flattened attribute name	*/
+		ST_CHAR flattened[MAX_FLAT_LEN+1];	/* flattened attribute name	相当于DAI的name*/
 		ST_CHAR *desc;			/* description (optional)*/
 		/* constructed from "name" & "ix"*/
 		/* from DOI, SDI, & DAI		*/
@@ -443,7 +443,7 @@ typedef enum {
 		ST_CHAR flattened[MAX_FLAT_LEN+1];	/*  name		*/
 		ST_CHAR *desc;			/* description (optional)*/
 		//SCL_SDI *ssdiHead;
-		//SCL_DAI *sdaiHead;
+		SCL_DAI *sdaiHead;
 	} SCL_SDI;
 
 	typedef struct
@@ -865,7 +865,16 @@ typedef enum {
 	SCL_FCDA *scl_fcda_add (
 		SCL_INFO *scl_info);
 
+	SCL_DOI *scl_doi_add (
+		SCL_INFO *scl_info);
+
+	SCL_SDI *scl_sdi_add (
+		SCL_INFO *scl_info);
+
 	SCL_DAI *scl_dai_add (
+		SCL_INFO *scl_info);
+		
+	SCL_DAI *scl_sdi_dai_add(
 		SCL_INFO *scl_info);
 
 	SCL_DATASET *scl_dataset_add (

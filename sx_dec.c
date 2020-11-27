@@ -262,12 +262,11 @@ ST_VOID sxStartElement (SX_DEC_CTRL *sxDecCtrl)
 	{
 		return;
 	}
-
+	SLOG_DEBUG("sxStartElement tag: %s itemStackLevel %d", sxDecElInfo->tag, stackLevelSave);
 	item = _uibed_find_element (sxDecCtrl, tag, &numOccPtr);
 
 	stackLevelSave = sxDecCtrl->itemStackLevel;
 
-	SLOG_DEBUG ("start itemStackLevel %d", stackLevelSave);
 
 	while (item == NULL && sxDecCtrl->itemStackLevel > 0)
 	{
@@ -293,7 +292,7 @@ ST_VOID sxStartElement (SX_DEC_CTRL *sxDecCtrl)
 
 		if (*numOccPtr > 1)
 		{
-			SLOG_WARN ("Number occurences: %d", *numOccPtr);
+			SLOG_DEBUG ("Number occurences: %d", *numOccPtr);
 		}
 
 		/* Save the item for later */

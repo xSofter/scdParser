@@ -17,6 +17,10 @@
 #define errMsg qCritical() << QString("[%1 %2: %3 %4]").arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz")).arg(__FILE__).arg(__FUNCTION__).arg(__LINE__)
 #define panicMsg  qFatal() << QString("[%1 %2: %3 %4]").arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz")).arg(__FILE__).arg(__FUNCTION__).arg(__LINE__)
 #define LOG_FILE_NAME "scdpase.log"
+#ifdef DEBUG_SISCO
+SD_CONST static ST_CHAR *SD_CONST thisFileName = __FILE__;
+#endif
+
 int main(int argc, char* argv[])
 {
 	//thisFileName = __FILE__;
@@ -33,7 +37,7 @@ int main(int argc, char* argv[])
 	SCL_LD* ld;
 	SCL_LN* ln;
 	SCL_DOI* doi;
-	SCL_DAI* dai;
+	// SCL_DAI* dai;
 	SCL_SDI* sdi;
 
 	SCL_SUBNET *net;
@@ -48,6 +52,8 @@ int main(int argc, char* argv[])
 
 	int i=0;
 
+	//test for log 
+	
 	slog_start(SX_LOG_ALWAY, LOG_FILE_EN, LOG_FILE_NAME);
 	rc = scl_parse(xmlFileName, iedName, accessPointName, &sclInfo);
 
@@ -91,17 +97,17 @@ int main(int argc, char* argv[])
 	
 	for(net = sclInfo.subnetHead; net!=NULL; net = (SCL_SUBNET*)list_get_next (sclInfo.subnetHead, net))
 	{
-		debugMsg << QString("net:%1 %2").arg(net->name).arg(net->desc);
+		SLOG_DEBUG ("net=%s type=%s",net->name, net->type);
 	
 		for(cap = net->capHead; cap!=NULL; cap = (SCL_CAP *)list_get_next (net->capHead, cap))
 		{
 			// if (cap->addr->IP == '\0' || cap->addr->IPSUBNET == '\0') continue;
 			SCL_PORT *port;
 			for (port = cap->portHead; port != NULL; port = (SCL_PORT *)list_get_next (cap->portHead, port)) {
-				debugMsg << QString("Port: %1").arg(port->portCfg);
+				SLOG_DEBUG("Port: %s", port->portCfg);
 			}
 			for (gse = cap->gseHead; gse != NULL; gse = (SCL_GSE *)list_get_next (cap->gseHead, gse)) {
-				debugMsg << QString("   cap:Name %5 MAC %1 APPID %2 min %3 max %4").arg(gse->MAC).arg(gse->APPID).arg(gse->minTime).arg(gse->maxTime).arg(gse->cbName);
+				SLOG_DEBUG("   cap:Name %s MAC %s APPID %d min %d max %d", gse->cbName, gse->MAC, gse->APPID, gse->minTime, gse->maxTime);
 			}
 			
 		}
@@ -110,27 +116,57 @@ int main(int argc, char* argv[])
 	
 	for (acPoint = sclInfo.accessPointHead; acPoint != NULL; acPoint = (SCL_ACCESSPOINT *)list_get_next(sclInfo.accessPointHead, acPoint))
 	{
-		debugMsg << "==============================AccessPoint=================================" ;
-		debugMsg << QString("AccessPoint Name= %1 desc=%2 ").arg(acPoint->name).arg(acPoint->desc);
-		debugMsg << "==============================LDevice Start===============================" ;
+		SLOG_DEBUG("==============================AccessPoint Start=============================");
+		SLOG_DEBUG("<AccessPoint Name= %s desc=%s>", acPoint->name, acPoint->desc);
+		SLOG_DEBUG("==============================LDevice Start=================================");
 		SCL_LD *scl_ld;
 		SCL_LN *scl_ln;
 		for (scl_ld = acPoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(acPoint->ldHead, scl_ld)){
-			debugMsg << QString("LDevice inst= %1 desc=%2 apName=%3").arg(scl_ld->inst).arg(scl_ld->desc).arg(scl_ld->apName);
-			// sclInfo.LLN0
+			SLOG_DEBUG("<LDevice inst= %s desc=%s apName=%s>", scl_ld->inst, scl_ld->desc, scl_ld->apName);
+			
 			for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
-				debugMsg << QString("   LN:%1 %2 %3 %4 %5 %6").arg(scl_ln->varName).arg(scl_ln->desc).arg(scl_ln->lnType).arg(scl_ln->lnClass).arg(scl_ln->prefix).arg(scl_ln->inst);
+				// ST_UCHAR dsCount = scl_ln->datasetCount;
+				SLOG_DEBUG("  <LN:%s %s %s %s %s %s>", scl_ln->varName, scl_ln->desc, scl_ln->lnType, scl_ln->lnClass, scl_ln->prefix, scl_ln->inst);
+				for (SCL_RCB *reportCtl = scl_ln->rcbHead; reportCtl != NULL; reportCtl = (SCL_RCB *)list_get_next(scl_ln->rcbHead, reportCtl)) {
+					SLOG_DEBUG("    <ReportControl: name=%s dataSet=%s intgPd=%d rptID=%s confRev=%d buffered=%d bufTime=%d", 
+										reportCtl->name, reportCtl->datSet, reportCtl->intgPd,
+										reportCtl->rptID, reportCtl->confRev, reportCtl->buffered,
+										reportCtl->bufTime);
+				}
 				for(SCL_DATASET* ds = scl_ln->datasetHead; ds != NULL; ds = (SCL_DATASET*)list_get_next(scl_ln->datasetHead, ds))
 				{
-					debugMsg << QString("  DataSet: name %1 Desc %2").arg(ds->name).arg(ds->desc); //
+					SLOG_DEBUG("    <DataSet: name %s Desc %s>", ds->name, ds->desc); //
 					for(SCL_FCDA* fcda = ds->fcdaHead; fcda != NULL; fcda = (SCL_FCDA*)list_get_next(ds->fcdaHead, fcda)) 
 					{
-						debugMsg << QString("    FCDA ldInst=%1 prefix=%2 lnClass=%3 lnInst=%4 doName=%5 daName=%6 fc=%7").arg(fcda->ldInst).arg(fcda->prefix).arg(fcda->lnClass).arg(fcda->lnInst).arg(fcda->doName).arg(fcda->daName).arg(fcda->fc); //FCDA:Alm32, , TEMPLATELD0, ST
+						SLOG_DEBUG("      <FCDA ldInst=%s prefix=%s lnClass=%s lnInst=%s doName=%s daName=%s fc=%s>", 
+											fcda->ldInst,
+											fcda->prefix, 
+											fcda->lnClass,
+											fcda->lnInst,
+											fcda->doName,
+											fcda->daName, 
+											fcda->fc); //FCDA:Alm32, , TEMPLATELD0, ST
 					}
-				}
+				}		
+				for (SCL_DOI *doi = scl_ln->doiHead; doi != NULL; doi = (SCL_DOI *)list_get_next(scl_ln->doiHead, doi)) {
+					SLOG_DEBUG("    <DOI name=%s dest=%s>", doi->name, doi->desc);
+					for (SCL_SDI *sdi = doi->sdiHead; sdi != NULL; sdi = (SCL_SDI *)list_get_next(doi->sdiHead, sdi)) {
+						SLOG_DEBUG("      <SDI name=%s>", sdi->flattened);
+						for (SCL_DAI *dai = sdi->sdaiHead; dai != NULL; dai = (SCL_DAI *)list_get_next(sdi->sdaiHead, dai))
+						{
+							SLOG_DEBUG("        <DAI name=%s sAddr=%s>", dai->flattened, dai->sAddr);
+						}
+						
+					}	
+					for (SCL_DAI *dai = doi->daiHead; dai != NULL; dai = (SCL_DAI *)list_get_next(doi->daiHead, dai)) {
+						SLOG_DEBUG("      <DAI name=%s sAddr=%s val=%s>", dai->flattened, dai->sAddr, dai->Val);
+					}									
+				}		
 			}
 		}
-		debugMsg << "==============================LDevice End===================================" ;
+		SLOG_DEBUG("==============================LDevice End===================================");
+		SLOG_DEBUG("==============================AccessPoint End===============================");
+		
 	}
 	
 	
@@ -152,7 +188,7 @@ int main(int argc, char* argv[])
 
 	scl_info_destroy(&sclInfo);
 	
-	debugMsg << QString("main: parse %1, rc=%2").arg(xmlFileName).arg(rc);
+	printf("main: parse %s, Result=%d\n", xmlFileName, rc);
 	
 
 	//slog_start(SX_LOG_ALWAY, LOG_MEM_EN, NULL);

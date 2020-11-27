@@ -87,6 +87,7 @@ extern "C" {
 #define SX_FILE_NOT_FOUND	    	9
 #define SX_END_PARSING		    	10	/* for partial parsing	*/
 #define SX_ELEMENT_TBL_TOO_BIG	    	11
+#define SX_INTERNAL_NULL_POINTER	12
 	/* NOTE: when adding more error codes update also the sx_err_str[] in the sx_dec.c	*/
 
 	/* Normal errors - continue with parse */
@@ -177,7 +178,7 @@ extern "C" {
 
 #define SX_ELF_RPT		0x0008
 #define SX_ELF_OPT		0x0004
-#define SX_ELF_OPTRPT		0x000C
+#define SX_ELF_OPTRPT		0x000C		//可重入
 
 #define SX_ELF_EMPTYOK		0x0010
 
