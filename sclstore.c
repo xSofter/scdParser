@@ -336,7 +336,7 @@ SCL_SDI *scl_sdi_add(SCL_INFO *scl_info) {
 		}		
 		/* Add SDI to front of DOI List.	*/
 			/* SDI 的头结点指向本级DOI*/
-		SLOG_DEBUG("SCL_SDI_ADD last DOI address 0x%p, doiname: %s, ln: %s, ld: %s", curDoi, curDoi->name, curLn->desc, ldHead->desc);
+		// SLOG_DEBUG("SCL_SDI_ADD last DOI address 0x%p, doiname: %s, ln: %s, ld: %s", curDoi, curDoi->name, curLn->desc, ldHead->desc);
 		scl_sdi = (SCL_SDI *) chk_calloc (1, sizeof (SCL_SDI));
 		list_add_last (&curDoi->sdiHead, scl_sdi);
 	} else
@@ -376,7 +376,7 @@ SCL_DAI *scl_dai_add (
 		//分两种情况,DAI在SDI下级,DAI在DOI下级
 		
 		/* DAI 的头结点指向本级LN*/
-		SLOG_DEBUG("SCL_DAI_ADD last DOI address 0x%p, doiname: %s, ln: %s, ld: %s", curDoi, curDoi->name, curLn->desc, ldHead->desc);
+		// SLOG_DEBUG("SCL_DAI_ADD last DOI address 0x%p, doiname: %s, ln: %s, ld: %s", curDoi, curDoi->name, curLn->desc, ldHead->desc);
 		scl_dai = (SCL_DAI *) chk_calloc (1, sizeof (SCL_DAI));
 		/* Add DAI to front of DOI List.	*/
 		list_add_last (&curDoi->daiHead, scl_dai);
@@ -387,6 +387,51 @@ SCL_DAI *scl_dai_add (
 	}
 	return (scl_dai);
 }
+/************************************************************************/
+/*			scl_sdi_sdi_add					*/
+/* Allocates a SCL_SDI struct						*/
+/* and adds it to the linked list "sdiHead" in LN_DOI_SDI_SDi_SDI.			*/
+/************************************************************************/
+SCL_SDI *scl_sdi_sdi_add(SCL_INFO *scl_info) {
+	SCL_SDI *scl_sdi = NULL;	/* assume failure	*/
+	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
+	/* All higher level linked lists must be initialized.	*/
+	if (ldHead && ldHead->lnHead)
+	{
+		//find current ln, return if null found
+		SCL_LN *curLn = list_find_last(ldHead->lnHead);
+		if (!curLn){
+			SLOG_ERROR ("Cannot find LN from LD");
+			return (scl_sdi);
+		} 
+		//find current doi, return if null found
+		SCL_DOI *curDoi = list_find_last(curLn->doiHead);
+		if (!curDoi) {
+			SLOG_ERROR ("Cannot find DOI from LN");
+			return (scl_sdi);
+		}				
+		
+		//从DOI的最后一个SDI开始
+		SCL_SDI* curSdi = list_find_last(curDoi->sdiHead);
+		if (!curSdi) {
+			SLOG_ERROR ("Cannot find SDI from DOI");
+			return (scl_sdi);
+		}		
+		//分两种情况, case DAI在SDI下级
+		
+		/* DAI 的头结点指向本级SDI*/
+		// SLOG_DEBUG("scl_sdi_sdi_add last SDI address 0x%p. SDI: %s doiname: %s, ln: %s, ld: %s", curDoi, curSdi->desc, curDoi->name, curLn->desc, ldHead->desc);
+		scl_sdi = (SCL_SDI *) chk_calloc (1, sizeof (SCL_SDI));
+		/* Add DAI to front of DOI List.	*/
+		list_add_last (&curSdi->ssdiHead, scl_sdi);
+	}
+	else
+	{
+		SLOG_ERROR ("Cannot add SDI to NULL DOI");
+	}
+	return (scl_sdi);
+}
+
 
 /************************************************************************/
 /*			scl_sdi_dai_add					*/
@@ -414,13 +459,13 @@ SCL_DAI *scl_sdi_dai_add(SCL_INFO *scl_info) {
 		
 		SCL_SDI* curSdi = list_find_last(curDoi->sdiHead);
 		if (!curSdi) {
-			SLOG_ERROR ("Cannot find DOI from LN");
+			SLOG_ERROR ("Cannot find SDI from DOI");
 			return (scl_dai);
 		}		
 		//分两种情况, case DAI在SDI下级
 		
 		/* DAI 的头结点指向本级SDI*/
-		SLOG_DEBUG("SCL_sdi_dai_add last SDI address 0x%p. SDI: %s doiname: %s, ln: %s, ld: %s", curDoi, curSdi->desc, curDoi->name, curLn->desc, ldHead->desc);
+		// SLOG_DEBUG("SCL_sdi_dai_add last SDI address 0x%p. SDI: %s doiname: %s, ln: %s, ld: %s", curDoi, curSdi->desc, curDoi->name, curLn->desc, ldHead->desc);
 		scl_dai = (SCL_DAI *) chk_calloc (1, sizeof (SCL_DAI));
 		/* Add DAI to front of DOI List.	*/
 		list_add_last (&curSdi->sdaiHead, scl_dai);
@@ -984,97 +1029,133 @@ ST_VOID scl_info_destroy (SCL_INFO *scl_info)
 			chk_free (scl_acpoint->desc);
 		
 		while ((scl_ld = (SCL_LD *) list_get_first (&scl_acpoint->ldHead)) != NULL)
+		{	
+			while ((scl_ln = (SCL_LN *) list_get_first (&scl_ld->lnHead)) != NULL)
 			{	
-				while ((scl_ln = (SCL_LN *) list_get_first (&scl_ld->lnHead)) != NULL)
+				while ((scl_doi = (SCL_DOI *) list_get_first (&scl_ln->doiHead)) != NULL)
 				{	
-					while ((scl_doi = (SCL_DOI *) list_get_first (&scl_ln->doiHead)) != NULL)
+					//DOI下一级DAI
+					while ((scl_dai = (SCL_DAI *) list_get_first (&scl_doi->daiHead)) != NULL)
 					{	
-						while ((scl_dai = (SCL_DAI *) list_get_first (&scl_doi->daiHead)) != NULL)
-						{	
-							if (scl_dai->Val)
-								chk_free (scl_dai->Val);
+						if (scl_dai->Val)
+							chk_free (scl_dai->Val);
 
-							if (scl_dai->desc)
-								chk_free (scl_dai->desc);
+						if (scl_dai->desc)
+							chk_free (scl_dai->desc);
 
-							chk_free (scl_dai);
+						if (scl_dai->name)
+							chk_free (scl_dai->name);
+
+						chk_free (scl_dai);
+					}
+					SCL_SDI* ssdi;
+					SCL_DAI* sdai;
+					//DOI下SDI,存在多级
+					while ((scl_sdi = (SCL_SDI *) list_get_first (&scl_doi->sdiHead)) != NULL)
+					{	
+						if (scl_sdi->desc)
+							chk_free (scl_sdi->desc);
+
+						if (scl_sdi->name)
+							chk_free (scl_sdi->name);	
+
+						//SDI 下SDI
+						while ((ssdi = (SCL_SDI *) list_get_first (&scl_sdi->ssdiHead)) != NULL)
+						{
+							if (ssdi->desc)
+								chk_free (ssdi->desc);
+
+							if (ssdi->name)
+								chk_free (ssdi->name);	
+
+							chk_free (ssdi);
 						}
-						while ((scl_sdi = (SCL_SDI *) list_get_first (&scl_doi->sdiHead)) != NULL)
-						{	
-							if (scl_sdi->desc)
-								chk_free (scl_sdi->desc);
 
-							chk_free (scl_sdi);
-						}
+						while ((sdai = (SCL_DAI *) list_get_first (&scl_sdi->sdaiHead)) != NULL)
+						{
+							if (sdai->desc)
+								chk_free (sdai->desc);
 
-						if (scl_doi->desc)
-							chk_free (scl_doi->desc);
-						chk_free (scl_doi);	
+							if (sdai->name)
+								chk_free (sdai->name);	
+
+							if (sdai->Val)
+								chk_free (sdai->Val);								
+								
+							chk_free (sdai);
+						}						
+									
+						chk_free (scl_sdi);
 					}
 
-					while ((scl_dataset = (SCL_DATASET *) list_get_first (&scl_ln->datasetHead)) != NULL)
-					{	
-						while ((scl_fcda = (SCL_FCDA *) list_get_first (&scl_dataset->fcdaHead)) != NULL)
-						{	
-							chk_free (scl_fcda);
-						}
-						if (scl_dataset->desc)
-							chk_free (scl_dataset->desc);
-						chk_free (scl_dataset);
-					}
-
-					while ((scl_rcb = (SCL_RCB *) list_get_first (&scl_ln->rcbHead)) != NULL)
-					{	
-						if (scl_rcb->desc)
-							chk_free (scl_rcb->desc);
-						chk_free (scl_rcb);
-					}
-
-					while ((scl_lcb = (SCL_LCB *) list_get_first (&scl_ln->lcbHead)) != NULL)
-					{	
-						if (scl_lcb->desc)
-							chk_free (scl_lcb->desc);
-						chk_free (scl_lcb);
-					}
-
-					while ((scl_gcb = (SCL_GCB *) list_get_first (&scl_ln->gcbHead)) != NULL)
-					{	
-						SCL_IEDNAME *iedNm;
-						while ((iedNm = (SCL_IEDNAME *) list_get_first (&scl_gcb->iedNHead)) != NULL)
-						{	
-							chk_free (iedNm);
-						}
-						if (scl_gcb->desc)
-							chk_free (scl_gcb->desc);
-						chk_free (scl_gcb);
-					}
-					while ((scl_svcb = (SCL_SVCB *) list_get_first (&scl_ln->svcbHead)) != NULL)
-					{	
-						SCL_IEDNAME *iedNm;
-						while ((iedNm = (SCL_IEDNAME *) list_get_first (&scl_svcb->iedNHead)) != NULL)
-						{	
-							chk_free (iedNm);
-						}
-						if (scl_svcb->desc)
-							chk_free (scl_svcb->desc);
-						chk_free (scl_svcb);
-					}
-
-					/* Only one SGCB allowed (no linked list)	*/
-					if (scl_ln->sgcb)
-					{	
-						if (scl_ln->sgcb->desc)
-							chk_free (scl_ln->sgcb->desc);
-						chk_free (scl_ln->sgcb);
-					}
-					if (scl_ln->desc)
-						chk_free (scl_ln->desc);
-					chk_free (scl_ln);
+					if (scl_doi->desc)
+						chk_free (scl_doi->desc);
+					chk_free (scl_doi);	
 				}
-				if (scl_ld->desc)
-					chk_free (scl_ld->desc);
-				chk_free (scl_ld);
-			}		
+
+				while ((scl_dataset = (SCL_DATASET *) list_get_first (&scl_ln->datasetHead)) != NULL)
+				{	
+					while ((scl_fcda = (SCL_FCDA *) list_get_first (&scl_dataset->fcdaHead)) != NULL)
+					{	
+						chk_free (scl_fcda);
+					}
+					if (scl_dataset->desc)
+						chk_free (scl_dataset->desc);
+					chk_free (scl_dataset);
+				}
+
+				while ((scl_rcb = (SCL_RCB *) list_get_first (&scl_ln->rcbHead)) != NULL)
+				{	
+					if (scl_rcb->desc)
+						chk_free (scl_rcb->desc);
+					chk_free (scl_rcb);
+				}
+
+				while ((scl_lcb = (SCL_LCB *) list_get_first (&scl_ln->lcbHead)) != NULL)
+				{	
+					if (scl_lcb->desc)
+						chk_free (scl_lcb->desc);
+					chk_free (scl_lcb);
+				}
+
+				while ((scl_gcb = (SCL_GCB *) list_get_first (&scl_ln->gcbHead)) != NULL)
+				{	
+					SCL_IEDNAME *iedNm;
+					while ((iedNm = (SCL_IEDNAME *) list_get_first (&scl_gcb->iedNHead)) != NULL)
+					{	
+						chk_free (iedNm);
+					}
+					if (scl_gcb->desc)
+						chk_free (scl_gcb->desc);
+					chk_free (scl_gcb);
+				}
+				while ((scl_svcb = (SCL_SVCB *) list_get_first (&scl_ln->svcbHead)) != NULL)
+				{	
+					SCL_IEDNAME *iedNm;
+					while ((iedNm = (SCL_IEDNAME *) list_get_first (&scl_svcb->iedNHead)) != NULL)
+					{	
+						chk_free (iedNm);
+					}
+					if (scl_svcb->desc)
+						chk_free (scl_svcb->desc);
+					chk_free (scl_svcb);
+				}
+
+				/* Only one SGCB allowed (no linked list)	*/
+				if (scl_ln->sgcb)
+				{	
+					if (scl_ln->sgcb->desc)
+						chk_free (scl_ln->sgcb->desc);
+					chk_free (scl_ln->sgcb);
+				}
+				if (scl_ln->desc)
+					chk_free (scl_ln->desc);
+				chk_free (scl_ln);
+			}
+			if (scl_ld->desc)
+				chk_free (scl_ld->desc);
+			chk_free (scl_ld);
+		}		
 		//do not forget free itself
 		chk_free (scl_acpoint);			
 	}

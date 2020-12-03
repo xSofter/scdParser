@@ -30,3 +30,9 @@ ICD/CID xml file parse for IEC61850 protocol
 ```
 2 增加对LN节点下,屏蔽处理不应该存在的Elements  
 3 对DOI节点下的DAI,以及SDI节点下的DAI做拆分处理,减少解析短地址的工作量  
+
+## 2020-12-03 
+1 支持DOI节点下,递归解析SDI和DAI节点  
+2 在解析完每个LDevice后,找到DataSet的每个FCDA地址,并将addr和desc和type记录下来  
+3 支持记录每个DAI的name和描述  
+4 解决日志记录级别不正确的问题,无法记录LOG_Error的问题  

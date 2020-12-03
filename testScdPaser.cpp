@@ -5,18 +5,15 @@
 /************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
-#include <QDebug>
-#include <QDateTime>
+#include <string.h>
+// #include <QDebug>
+// #include <QDateTime>
 #include "scl.h"
 #include "slog.h"
 
-//static char *thisFileName;
-#define debugMsg qDebug() << QString("[%1 %2: %3 %4]").arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz")).arg(__FILE__).arg(__FUNCTION__).arg(__LINE__)
-#define warnMsg qWarning() << QString("[%1 %2: %3 %4]").arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz")).arg(__FILE__).arg(__FUNCTION__).arg(__LINE__)
 
-#define errMsg qCritical() << QString("[%1 %2: %3 %4]").arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz")).arg(__FILE__).arg(__FUNCTION__).arg(__LINE__)
-#define panicMsg  qFatal() << QString("[%1 %2: %3 %4]").arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz")).arg(__FILE__).arg(__FUNCTION__).arg(__LINE__)
 #define LOG_FILE_NAME "scdpase.log"
+
 #ifdef DEBUG_SISCO
 SD_CONST static ST_CHAR *SD_CONST thisFileName = __FILE__;
 #endif
@@ -50,7 +47,7 @@ int main(int argc, char* argv[])
 	SCL_DOTYPE *dot;
 	SCL_DA *dan;
 
-	int i=0;
+	// int i=0;
 
 	//test for log 
 	
@@ -126,42 +123,32 @@ int main(int argc, char* argv[])
 			
 			for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
 				// ST_UCHAR dsCount = scl_ln->datasetCount;
-				SLOG_DEBUG("  <LN:%s %s %s %s %s %s>", scl_ln->varName, scl_ln->desc, scl_ln->lnType, scl_ln->lnClass, scl_ln->prefix, scl_ln->inst);
-				for (SCL_RCB *reportCtl = scl_ln->rcbHead; reportCtl != NULL; reportCtl = (SCL_RCB *)list_get_next(scl_ln->rcbHead, reportCtl)) {
-					SLOG_DEBUG("    <ReportControl: name=%s dataSet=%s intgPd=%d rptID=%s confRev=%d buffered=%d bufTime=%d", 
-										reportCtl->name, reportCtl->datSet, reportCtl->intgPd,
-										reportCtl->rptID, reportCtl->confRev, reportCtl->buffered,
-										reportCtl->bufTime);
-				}
-				for(SCL_DATASET* ds = scl_ln->datasetHead; ds != NULL; ds = (SCL_DATASET*)list_get_next(scl_ln->datasetHead, ds))
+				SLOG_DEBUG("  <LN VarName=\"%s\" desc=\"%s\" lnType=\"%s\" lnClass=\"%s\" prefix=\"%s\" inst=\"%s\">",
+								 scl_ln->varName, scl_ln->desc, scl_ln->lnType, scl_ln->lnClass, scl_ln->prefix, scl_ln->inst);
+				//如果是dataset
+				for(SCL_DATASET* ds = scl_ln->datasetHead; ds != NULL; ds = (SCL_DATASET *)list_get_next(scl_ln->datasetHead, ds))
 				{
 					SLOG_DEBUG("    <DataSet: name %s Desc %s>", ds->name, ds->desc); //
 					for(SCL_FCDA* fcda = ds->fcdaHead; fcda != NULL; fcda = (SCL_FCDA*)list_get_next(ds->fcdaHead, fcda)) 
 					{
-						SLOG_DEBUG("      <FCDA ldInst=%s prefix=%s lnClass=%s lnInst=%s doName=%s daName=%s fc=%s>", 
+						SLOG_DEBUG("      <FCDA ldInst=%s prefix=%s lnClass=%s lnInst=%s doName=%s daName=%s fc=%s desc=%s sAddr=%s>", 
 											fcda->ldInst,
 											fcda->prefix, 
 											fcda->lnClass,
 											fcda->lnInst,
 											fcda->doName,
 											fcda->daName, 
-											fcda->fc); //FCDA:Alm32, , TEMPLATELD0, ST
+											fcda->fc, 
+											fcda->doRefDesc,
+											fcda->doRefsAddr); 
+																		
 					}
-				}		
-				for (SCL_DOI *doi = scl_ln->doiHead; doi != NULL; doi = (SCL_DOI *)list_get_next(scl_ln->doiHead, doi)) {
-					SLOG_DEBUG("    <DOI name=%s dest=%s>", doi->name, doi->desc);
-					for (SCL_SDI *sdi = doi->sdiHead; sdi != NULL; sdi = (SCL_SDI *)list_get_next(doi->sdiHead, sdi)) {
-						SLOG_DEBUG("      <SDI name=%s>", sdi->flattened);
-						for (SCL_DAI *dai = sdi->sdaiHead; dai != NULL; dai = (SCL_DAI *)list_get_next(sdi->sdaiHead, dai))
-						{
-							SLOG_DEBUG("        <DAI name=%s sAddr=%s>", dai->flattened, dai->sAddr);
-						}
-						
-					}	
-					for (SCL_DAI *dai = doi->daiHead; dai != NULL; dai = (SCL_DAI *)list_get_next(doi->daiHead, dai)) {
-						SLOG_DEBUG("      <DAI name=%s sAddr=%s val=%s>", dai->flattened, dai->sAddr, dai->Val);
-					}									
-				}		
+				}
+
+				//如果是遥控类型	
+				if (!strcasecmp(scl_ln->lnClass,"CSWI") ) {
+					SLOG_DEBUG("Control name:sclVarName: %s",scl_ln->varName);
+				}				
 			}
 		}
 		SLOG_DEBUG("==============================LDevice End===================================");
@@ -188,7 +175,7 @@ int main(int argc, char* argv[])
 
 	scl_info_destroy(&sclInfo);
 	
-	printf("main: parse %s, Result=%d\n", xmlFileName, rc);
+	printf("Parse scl file %s Result=%d\n", xmlFileName, rc);
 	
 
 	//slog_start(SX_LOG_ALWAY, LOG_MEM_EN, NULL);

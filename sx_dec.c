@@ -25,6 +25,7 @@
 #include "glbtypes.h"
 #include "sysincs.h"
 #include "mem_chk.h"
+#include "scl.h"
 #include "sx_defs.h"
 //#include "time_str.h"
 #include "str_util.h"
@@ -62,7 +63,7 @@ static void XMLCALL expatHandlerEndSkip(void *userData, const char *el);
 
 ST_BOOLEAN sxUseSax;
 ST_BOOLEAN sxIgnoreNS;
-
+ST_VOID sx_get_stVal_by_fcda(SCL_LD* scl_ld, SCL_FCDA* fcda);
 ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl);
 ST_RET sx_rip_xml_file (SX_DEC_CTRL *sxDecCtrl);
 ST_RET sx_rip_xml_mem (SX_DEC_CTRL *sxDecCtrl);
@@ -2543,3 +2544,124 @@ ST_RET sx_rip_xml_mem (SX_DEC_CTRL *sxDecCtrl)
 	return (retcode);
 }
 #endif	/* USE_EXPAT	*/
+
+/**
+ * @Description: 
+ */
+ST_VOID sx_get_daName_combined(ST_CHAR* srcDoName, const ST_CHAR* delims, ST_CHAR* doiName, ST_CHAR* sdiName) {
+	if (!delims || !srcDoName) {
+		return ;
+	}
+	ST_CHAR srcStr[MAX_IDENT_LEN+1];
+	//do not use original do str
+	strncpy_safe(srcStr, srcDoName, MAX_IDENT_LEN);
+	ST_CHAR* next = NULL;
+	
+	next = strtok(srcStr, delims);
+	if (next) {
+		// printf("doiName %s\n",next);
+		strncpy_safe(doiName, next, MAX_IDENT_LEN);
+	}
+	next = strtok(NULL, delims);
+	if (next) {
+		strncpy_safe(sdiName, next, MAX_IDENT_LEN);
+	}
+	return ;
+}
+
+
+/************************************************************
+@ Description: 根据FCDA的当前内容,从LN中查找stVal,LN由FCDA去查找
+缩小查找范围,限制在同一个LD内
+**************************************************************/
+ST_VOID sx_get_stVal_by_fcda(SCL_LD* scl_ld, SCL_FCDA* fcda) {
+	if (!scl_ld->lnHead || !scl_ld) {
+		SLOG_ERROR("Error scl_ld or scl_lnHead pointer");
+		return;
+	}
+	SCL_LN* scl_ln = NULL;
+	SCL_DATASET* ds = NULL;
+	// const ST_CHAR fcType[] = {"ST", "SP", "MX", "SG"};
+	ST_CHAR sdiName[MAX_IDENT_LEN + 1];
+	ST_CHAR doiName[MAX_IDENT_LEN + 1];
+	//根据FCDA找到其LN
+	for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN * )list_get_next(scl_ld->lnHead, scl_ln)) {
+		if (strcmpi(fcda->ldInst, scl_ld->inst)) continue;
+		if (//!strcmpi(fcda->prefix, scl_ln->prefix) && 
+			!strcmpi(fcda->lnClass, scl_ln->lnClass) && 
+			!strcmpi(fcda->lnInst, scl_ln->inst)) 
+		{
+			if (strcmpi(fcda->prefix, scl_ln->prefix) && (strlen(fcda->prefix) > 0)) //存在prefix,但不相等,也退出
+			{
+				continue;
+			}
+			//拷贝ln类型
+			strncpy_safe(fcda->lnRefType, scl_ln->lnType, MAX_IDENT_LEN);
+			SCL_DOI* doi;
+			SCL_DAI* dai;
+			SCL_SDI* sdi;
+			//寻找短地址
+			for (doi = scl_ln->doiHead; doi != NULL; doi = (SCL_DOI *)list_get_next(scl_ln->doiHead, doi)) {
+				//单独拎出MX
+				if (strcmpi(fcda->fc, "MX") == 0) {//MX 类里面 存在组合的情况doName="PhV.phsA"
+					if (strstr(fcda->doName, ".") != NULL){	
+						sx_get_daName_combined(fcda->doName, ".", doiName, sdiName);
+						if (strcmpi(doiName, doi->name)) continue;	//跳过doi不匹配的地方
+						strncpy_safe(fcda->doRefDesc, doi->desc, MAX_IDENT_LEN);
+						for (sdi = doi->sdiHead; sdi != NULL; sdi = (SCL_SDI *)list_get_next(doi->sdiHead, sdi)) {
+							if (strcmpi(sdiName, sdi->name)) continue;	//跳过sdi不匹配的地方
+							//从命中的SDI中找短地址
+							for (dai = sdi->sdaiHead; dai != NULL; dai = (SCL_DAI *)list_get_next(sdi->sdaiHead, dai)) {
+								// SLOG_DEBUG (" doi->name %s sdiName %s dai->name %s dai->sAddr %s", doi->name, sdiName ,dai->name, dai->sAddr);
+								if (!strlen(dai->sAddr)) continue;
+								strncpy_safe(fcda->doRefsAddr, dai->sAddr, MAX_IDENT_LEN);
+								break;
+							}
+						}
+					}
+					else 
+					{
+						if (strcmpi(fcda->doName, doi->name)) continue;	//跳过不匹配的DOName
+						// SLOG_DEBUG("DOI name: %s", doi->name);
+						strncpy_safe(fcda->doRefDesc, doi->desc, MAX_IDENT_LEN);
+						for (sdi = doi->sdiHead; sdi != NULL; sdi = (SCL_SDI *)list_get_next(doi->sdiHead, sdi)) {
+							// SLOG_DEBUG("    SDI name: %s ", sdi->name);							
+							for (dai = sdi->sdaiHead; dai != NULL; dai = (SCL_DAI *)list_get_next(sdi->sdaiHead, dai)) {
+								// SLOG_DEBUG("      DAI name: %s sAddr %s", dai->name, dai->sAddr);
+								if (!strlen(dai->sAddr)) continue;
+								strncpy_safe(fcda->doRefsAddr, dai->sAddr, MAX_IDENT_LEN);
+								break;
+							}
+						}
+						
+					}
+					//MX结束
+					continue;
+				} 
+
+				if (strcmpi(fcda->doName, doi->name)) continue;	//非测量类可以比较DoName
+				
+				strncpy_safe(fcda->doRefDesc, doi->desc, MAX_IDENT_LEN);
+				for (dai = doi->daiHead; dai != NULL; dai = (SCL_DAI *)list_get_next(doi->daiHead, dai)) {
+					//根据FCDA的约束类型FC功能限制分类,判断如何寻找sAddr
+					// if (!strcmpi(fcda->fc, "ST")) {
+					// 	//如果存在da
+					// 	if (strcmpi(fcda->daName, dai->name) == 0 && (strlen(fcda->daName) > 0)) {
+					// 		if (!strlen(dai->sAddr)) continue;
+					// 		strncpy_safe(fcda->doRefsAddr, dai->sAddr, MAX_IDENT_LEN);
+					// 		break;
+					// 	}
+					// }
+					//如果FCDA存在daName但不匹配,精确查找
+					if (strcmpi(fcda->daName, dai->name) && strlen(fcda->daName) > 0 )  continue;
+					//如果FCDA没有写daname
+					if (!strlen(dai->sAddr)) continue;	
+					strncpy_safe(fcda->doRefsAddr, dai->sAddr, MAX_IDENT_LEN);
+					break;			
+				}
+				
+			}
+		}
+	}
+	return;
+}

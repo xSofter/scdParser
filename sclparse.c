@@ -72,12 +72,13 @@ SD_CONST static ST_CHAR *SD_CONST thisFileName = __FILE__;
 /* Macros to access each individual bit of any bitstring.		*/
 #define BSTR_BIT_SET_ON(ptr,bitnum) \
 	( ((ST_UINT8 *)(ptr))[(bitnum)/8] |= (0x80>>((bitnum)&7)) )
+	
 #define BSTR_BIT_SET_OFF(ptr,bitnum) \
 	( ((ST_UINT8 *)(ptr))[(bitnum)/8] &= ~(0x80>>((bitnum)&7)) )
 
 /* BSTR_BIT_GET returns 0 if bit is clear, 1 if bit is set.	*/
 #define BSTR_BIT_GET(ptr,bitnum) \
-	(( ((ST_UINT8 *)(ptr))[(bitnum)/8] &  (0x80>>((bitnum)&7)) ) ? 1:0)
+	(( ((ST_UINT8 *)(ptr))[(bitnum)/8] &  (0x80>>((bitnum)&7)) ) ? "true" : "false" )
 
 typedef struct scl_dec_ctrl
 {
@@ -145,6 +146,7 @@ static ST_VOID _RptEnabled_SFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _DOI_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _SDI_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _DOI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl);
+static ST_VOID _SDI_SDI_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _SDI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _DAI_Val_SEFun (SX_DEC_CTRL *sxDecCtrl);
 static ST_VOID _DataTypeTemplates_SEFun (SX_DEC_CTRL *sxDecCtrl);
@@ -430,10 +432,11 @@ SX_ELEMENT DOIElements[] =
 };
 
 /* SDI can be nested under itself indefinitely */
+/* SDI->SDI DAI or SDI->SDI->SDI->DAI*/
+/* new add SDI_SDI_SEFun 增加顶层SDI下处理SDI和DAI的*/
 SX_ELEMENT SDIElements[] = 
 {
-	//SDI下面不会再有SDI节点,先注释掉
-	//{"SDI",  				SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SDI_SEFun, NULL, 0},
+	{"SDI",  				SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SDI_SDI_SEFun, NULL, 0},
 	{"DAI",  				SX_ELF_CSTARTEND|SX_ELF_OPTRPT,	_SDI_DAI_SEFun, NULL, 0}
 };
 
@@ -1485,8 +1488,8 @@ static ST_VOID _LDevice_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	ST_RET ret;
 	ST_BOOLEAN required = SD_FALSE;
 	SCL_INFO *scl_info;
-	SCL_LD *scl_ld;
-	ST_CHAR *desc;
+	SCL_LD* scl_ld;
+	ST_CHAR* desc;
 
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
@@ -1534,6 +1537,36 @@ static ST_VOID _LDevice_SEFun (SX_DEC_CTRL *sxDecCtrl)
 			scl_stop_parsing (sxDecCtrl, "_LDevice_SEFun", SX_USER_ERROR);
 		}
 		sx_pop (sxDecCtrl);
+		SLOG_DEBUG ("Parse LDevice element end");
+		/**
+   		* @Description:  add by tangkai 在解析完每个LDevice后,找到DataSet的每个FCDA地址,并将addr和desc和type记录下来
+   		*/
+	   SCL_LN* scl_ln;
+		for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
+			// ST_UCHAR dsCount = scl_ln->datasetCount;
+			// SLOG_DEBUG("  <LN:%s %s %s %s %s %s>", scl_ln->varName, scl_ln->desc, scl_ln->lnType, scl_ln->lnClass, scl_ln->prefix, scl_ln->inst);
+			SCL_DATASET* ds = NULL;
+			SCL_FCDA* fcda = NULL;
+			for(ds = scl_ln->datasetHead; ds != NULL; ds = (SCL_DATASET *)list_get_next(scl_ln->datasetHead, ds))
+			{
+				// SLOG_DEBUG("    <DataSet: name %s Desc %s>", ds->name, ds->desc); //
+				
+				for(fcda = ds->fcdaHead; fcda != NULL; fcda = (SCL_FCDA*)list_get_next(ds->fcdaHead, fcda)) 
+				{
+					sx_get_stVal_by_fcda(scl_ld, fcda);	
+					// SLOG_DEBUG("      <FCDA ldInst=%s prefix=%s lnClass=%s lnInst=%s doName=%s daName=%s fc=%s desc=%s sAddr=%s>", 
+					// 					fcda->ldInst,
+					// 					fcda->prefix, 
+					// 					fcda->lnClass,
+					// 					fcda->lnInst,
+					// 					fcda->doName,
+					// 					fcda->daName, 
+					// 					fcda->fc,
+					// 					fcda->doRefDesc, 
+					// 					fcda->doRefsAddr); 													
+				}
+			}
+		}		   
 	}
 }
 
@@ -1714,10 +1747,27 @@ static ST_VOID _FCDA_SFun (SX_DEC_CTRL *sxDecCtrl)
 		/* Construct domain name from SCL info	*/
 		/* ASSUME nameStructure="IEDName" (domain name = IED name + LDevice inst)*/
 		/* nameStructure="FuncName" is OBSOLETE.				*/
-		if (strlen(sclDecCtrl->iedName) + strlen(scl_fcda->ldInst) <= MAX_IDENT_LEN)
+		if (strlen(scl_fcda->ldInst) + strlen(scl_fcda->prefix)+ strlen(scl_fcda->lnClass) + 
+		   strlen(scl_fcda->lnInst) + strlen(scl_fcda->doName) + strlen(scl_fcda->daName) <= MAX_IDENT_LEN)
 		{
-			strcpy (scl_fcda->domName, sclDecCtrl->iedName);
-			strcat (scl_fcda->domName, scl_fcda->ldInst);
+			strcpy (scl_fcda->domName, scl_fcda->ldInst);
+			strcat (scl_fcda->domName, "/");
+			if (strlen(scl_fcda->prefix)) 
+			{
+				strcat (scl_fcda->domName, scl_fcda->prefix);
+				strcat (scl_fcda->domName, "/");
+			}
+			strcat (scl_fcda->domName, scl_fcda->lnClass);
+			strcat (scl_fcda->domName, "/");
+			strcat (scl_fcda->domName, scl_fcda->lnInst);
+			strcat (scl_fcda->domName, "/");
+			strcat (scl_fcda->domName, scl_fcda->doName);
+			if (strlen(scl_fcda->daName)) 
+			{
+				strcat (scl_fcda->domName, "/");
+				strcat (scl_fcda->domName, scl_fcda->daName);
+			}
+
 		}
 		else
 		{
@@ -2055,8 +2105,9 @@ static ST_VOID _TrgOps_SFun (SX_DEC_CTRL *sxDecCtrl)
 	{
 		if (stricmp(str, "true") == 0)
 		{
-			BSTR_BIT_SET_ON(sclDecCtrl->TrgOps, TRGOPS_BITNUM_DATA_CHANGE);
+			BSTR_BIT_SET_ON(sclDecCtrl->TrgOps, TRGOPS_BITNUM_DATA_CHANGE);	//1
 		}
+
 	}
 
 	ret = scl_get_attr_ptr (sxDecCtrl, "qchg", &str, required);
@@ -2064,7 +2115,7 @@ static ST_VOID _TrgOps_SFun (SX_DEC_CTRL *sxDecCtrl)
 	{
 		if (stricmp(str, "true") == 0)
 		{
-			BSTR_BIT_SET_ON(sclDecCtrl->TrgOps, TRGOPS_BITNUM_QUALITY_CHANGE);
+			BSTR_BIT_SET_ON(sclDecCtrl->TrgOps, TRGOPS_BITNUM_QUALITY_CHANGE);	//2
 		}
 	}
 
@@ -2073,16 +2124,16 @@ static ST_VOID _TrgOps_SFun (SX_DEC_CTRL *sxDecCtrl)
 	{
 		if (stricmp(str, "true") == 0)
 		{
-			BSTR_BIT_SET_ON(sclDecCtrl->TrgOps, TRGOPS_BITNUM_DATA_UPDATE);
+			BSTR_BIT_SET_ON(sclDecCtrl->TrgOps, TRGOPS_BITNUM_DATA_UPDATE);	//3
 		}
 	}
 
-	ret = scl_get_attr_ptr (sxDecCtrl, "period", &str, required);
+	ret = scl_get_attr_ptr (sxDecCtrl, "period", &str, required);		
 	if (ret == SD_SUCCESS)
 	{
 		if (stricmp(str, "true") == 0)
 		{
-			BSTR_BIT_SET_ON(sclDecCtrl->TrgOps, TRGOPS_BITNUM_INTEGRITY);
+			BSTR_BIT_SET_ON(sclDecCtrl->TrgOps, TRGOPS_BITNUM_INTEGRITY);	//4
 		}
 	}
 	/* end optional attributes */
@@ -2274,6 +2325,7 @@ static ST_VOID _SDI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	SCL_DEC_CTRL *sclDecCtrl;
 	ST_CHAR *ix;
 	ST_CHAR *name;
+	ST_CHAR *desc;
 	ST_RET ret;
 
 	sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
@@ -2286,9 +2338,9 @@ static ST_VOID _SDI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 			return;
 		}
 		/* start optional attributes */
-		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &name, SCL_ATTR_OPTIONAL);
+		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &desc, SCL_ATTR_OPTIONAL);
 		if (ret == SD_SUCCESS)
-			sdi->desc = chk_strdup (name);	/* Alloc & copy desc string	*/
+			sdi->desc = chk_strdup (desc);	/* Alloc & copy desc string	*/
 
 		ret = scl_get_attr_ptr (sxDecCtrl, "ix", &ix, SCL_ATTR_OPTIONAL);
 		if (ret)
@@ -2303,17 +2355,18 @@ static ST_VOID _SDI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		{
 			return;
 		}
+		sdi->name = chk_strdup (name);	/* Alloc & copy desc string	*/
 		/* end required attributes */
 
-		/* Continue creation of flattened name */
+		/* Continue creation of flattened name 地址嵌套*/
 		if (construct_flattened (sclDecCtrl->flattened, sizeof(sclDecCtrl->flattened), name, ix)
 			!= SD_SUCCESS)
 		{	/* error already logged.	*/
 			scl_stop_parsing (sxDecCtrl, "_SDI_SEFun", SX_USER_ERROR);
 			return;
 		}
-		strcpy(sdi->flattened,sclDecCtrl->flattened);
-		SLOG_DEBUG ("_SDI_SEFun Parse: name : %s", sdi->flattened);
+		strncpy_safe(sdi->flattened, sclDecCtrl->flattened, MAX_FLAT_LEN);
+		SLOG_DEBUG ("_SDI_SEFun flattened : %s", sdi->flattened);
 		//continue searching dai elements
 		sx_push (sxDecCtrl, sizeof(SDIElements)/sizeof(SX_ELEMENT), SDIElements, SD_FALSE);    
 	}
@@ -2339,6 +2392,7 @@ static ST_VOID _DOI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	SCL_DEC_CTRL *sclDecCtrl;
 	ST_CHAR *ix;
 	ST_CHAR *name;
+	ST_CHAR *desc;
 	ST_RET ret;
 	ST_CHAR *p;
 	ST_BOOLEAN required = SD_FALSE;
@@ -2358,15 +2412,15 @@ static ST_VOID _DOI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		}
 		
 		/* start optional attributes */
-		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &name, SCL_ATTR_OPTIONAL);
+		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &desc, SCL_ATTR_OPTIONAL);
 		if (ret == SD_SUCCESS)
-			scl_dai->desc = chk_strdup (name);	/* Alloc & copy desc string	*/
+			scl_dai->desc = chk_strdup (desc);	/* Alloc & copy desc string	*/
 
-		ret = scl_get_attr_ptr (sxDecCtrl, "ix", &ix, required);
+		ret = scl_get_attr_ptr (sxDecCtrl, "ix", &ix, SD_FALSE);
 		if (ret)
 			ix = NULL;
 		ret = scl_get_attr_copy (sxDecCtrl, "sAddr", scl_dai->sAddr, (sizeof(scl_dai->sAddr)-1), required);
-		ret = scl_get_attr_copy (sxDecCtrl, "valKind", scl_dai->valKind, (sizeof(scl_dai->valKind)-1), required);
+		
 		if (ret)
 			strcpy (scl_dai->valKind, "Set"); /* default */
 		/* end optional attributes */
@@ -2378,10 +2432,11 @@ static ST_VOID _DOI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		{
 			return;
 		}
+		scl_dai->name = chk_strdup (name);	/* Alloc & copy name string	*/
 		/* end required attributes */
 
 		/* Continue creation of flattened name */
-		if (construct_flattened (sclDecCtrl->flattened, sizeof(sclDecCtrl->flattened), name, ix)
+		if (construct_flattened (sclDecCtrl->flattened, sizeof(sclDecCtrl->flattened), name, desc)
 			!= SD_SUCCESS)
 		{	/* error already logged.	*/
 			scl_stop_parsing (sxDecCtrl, "_DOI_DAI_SEFun", SX_USER_ERROR);
@@ -2408,6 +2463,72 @@ static ST_VOID _DOI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		sx_pop (sxDecCtrl);
 	}
 }
+/************************************************************************/
+/*			_SDI_SDI_SEFun 处理SDI节点下的SDI					*/
+/************************************************************************/
+static ST_VOID _SDI_SDI_SEFun (SX_DEC_CTRL *sxDecCtrl)
+{
+	SCL_DEC_CTRL *sclDecCtrl;
+	ST_CHAR *ix;
+	ST_CHAR *name;
+	ST_CHAR *desc;
+	ST_RET ret;
+	ST_CHAR *p;
+	ST_BOOLEAN required = SD_FALSE;
+
+	sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
+
+	if (sxDecCtrl->reason == SX_ELEMENT_START)
+	{
+		SCL_SDI *sdi =scl_sdi_sdi_add(sclDecCtrl->sclInfo);
+		if (sdi == NULL) {
+			scl_stop_parsing  (sxDecCtrl, "_SDI_SDI_SEFun", SX_INTERNAL_NULL_POINTER);
+			return;
+		}
+		/* start optional attributes */
+		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &desc, SCL_ATTR_OPTIONAL);
+		if (ret == SD_SUCCESS)
+			sdi->desc = chk_strdup (desc);	/* Alloc & copy desc string	*/
+
+		ret = scl_get_attr_ptr (sxDecCtrl, "ix", &ix, SCL_ATTR_OPTIONAL);
+		if (ret)
+			ix = NULL;
+
+		/* end optional attributes */
+
+		/* start required attributes */
+		ret = scl_get_attr_ptr (sxDecCtrl, "name", &name, SCL_ATTR_REQUIRED);
+		if (ret != SD_SUCCESS)
+		{
+			return;
+		}
+		sdi->name = chk_strdup (name);	/* Alloc & copy desc string	*/
+		/* end required attributes */
+
+		/* Continue creation of flattened name 地址嵌套*/
+		if (construct_flattened (sclDecCtrl->flattened, sizeof(sclDecCtrl->flattened), name, ix)
+			!= SD_SUCCESS)
+		{	/* error already logged.	*/
+			scl_stop_parsing (sxDecCtrl, "_SDI_SDI_SEFun", SX_USER_ERROR);
+			return;
+		}
+		strncpy_safe(sdi->flattened, sclDecCtrl->flattened, MAX_FLAT_LEN);
+		SLOG_DEBUG ("_SDI_SDI_SEFun name: %s flattened : %s", sdi->name, sdi->flattened);
+		//continue searching dai elements
+		sx_push (sxDecCtrl, sizeof(SDIElements)/sizeof(SX_ELEMENT), SDIElements, SD_FALSE);    
+	}
+	else /* reason = SX_ELEMENT_END */
+	{
+		/* Remove the last item from the flattened string */
+		ST_CHAR *p = strrchr(sclDecCtrl->flattened, '$');
+		if (p != NULL)
+			*p = 0;
+		else
+			sclDecCtrl->flattened[0] = 0; //added by luolinglu
+		SLOG_DEBUG ("SCL PARSE: Removed last item from flattened variable: '%s'", sclDecCtrl->flattened);
+		sx_pop (sxDecCtrl);
+	}
+}
 
 /************************************************************************/
 /*			_SDI_DAI_SEFun 处理SDI节点下的DAI					*/
@@ -2418,6 +2539,7 @@ static ST_VOID _SDI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	SCL_DEC_CTRL *sclDecCtrl;
 	ST_CHAR *ix;
 	ST_CHAR *name;
+	ST_CHAR *desc;
 	ST_RET ret;
 	ST_CHAR *p;
 	ST_BOOLEAN required = SD_FALSE;
@@ -2430,6 +2552,7 @@ static ST_VOID _SDI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		itemTblCtrl = &sxDecCtrl->items[sxDecCtrl->itemStackLevel];
 			
 		SCL_DAI *scl_dai;
+		//添加子SDI
 		if ((scl_dai = sclDecCtrl->scl_dai = scl_sdi_dai_add (sclDecCtrl->sclInfo)) == NULL)
 		{
 			scl_stop_parsing (sxDecCtrl, "_SDI_DAI_SEFun", SX_INTERNAL_NULL_POINTER);
@@ -2437,9 +2560,9 @@ static ST_VOID _SDI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		}
 		
 		/* start optional attributes */
-		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &name, SCL_ATTR_OPTIONAL);
+		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &desc, SCL_ATTR_OPTIONAL);
 		if (ret == SD_SUCCESS)
-			scl_dai->desc = chk_strdup (name);	/* Alloc & copy desc string	*/
+			scl_dai->desc = chk_strdup (desc);	/* Alloc & copy desc string	*/
 
 		ret = scl_get_attr_ptr (sxDecCtrl, "ix", &ix, required);
 		if (ret)
@@ -2457,6 +2580,7 @@ static ST_VOID _SDI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		{
 			return;
 		}
+		scl_dai->name = chk_strdup (name);	/* Alloc & copy desc string	*/
 		/* end required attributes */
 
 		/* Continue creation of flattened name */
@@ -2468,7 +2592,7 @@ static ST_VOID _SDI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		}
 
 		strncpy_safe (scl_dai->flattened, sclDecCtrl->flattened, MAX_FLAT_LEN);
-		SLOG_DEBUG(" _SDI_DAI_SEFun name %s flattened %s sAddr %s", name, scl_dai->flattened, scl_dai->sAddr);
+		// SLOG_DEBUG(" _SDI_DAI_SEFun flattened %s sAddr %s", scl_dai->flattened, scl_dai->sAddr);
 	
 		sx_push (sxDecCtrl, sizeof(DAIElements)/sizeof(SX_ELEMENT), DAIElements, SD_FALSE);    
 		
@@ -3636,3 +3760,44 @@ static ST_VOID _Address_P_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	}
 }
 
+/************************************************************************/
+/*			scl_rptCtlget										
+/* 				对外服务函数,提取rpt里面的config
+/************************************************************************/
+ST_CHAR *scl_rptCtlget(ST_UINT8* rptPtr, SD_CONST ST_CHAR *field)
+{
+	if (rptPtr == NULL || field == NULL)
+	{
+		return NULL;
+	}
+	unsigned int i;
+	typedef struct  {
+		ST_CHAR* str;
+		ST_UINT8 code;
+	}STFieldCode;
+
+	SD_CONST STFieldCode fieldArr[] = 
+	{
+		{"dchg", 	TRGOPS_BITNUM_DATA_CHANGE},
+		{"qchg", 	TRGOPS_BITNUM_QUALITY_CHANGE},
+		{"dupd", 	TRGOPS_BITNUM_DATA_UPDATE},
+		{"period", 	TRGOPS_BITNUM_INTEGRITY},
+		{"seqNum",		OPTFLD_BITNUM_SQNUM},
+		{"timeStamp", 	OPTFLD_BITNUM_TIMESTAMP},
+		{"dataSet", 	OPTFLD_BITNUM_REASON},
+		{"reasonCode", 	OPTFLD_BITNUM_DATSETNAME},
+		{"dataRef", 	OPTFLD_BITNUM_DATAREF},
+		{"bufOvfl", 	OPTFLD_BITNUM_BUFOVFL},
+		{"entryID", 	OPTFLD_BITNUM_ENTRYID},
+		{"configRef", 	OPTFLD_BITNUM_CONFREV}
+	};
+	// ST_UINT8 i;
+	for ( i = 0; i < sizeof(fieldArr)/sizeof(fieldArr[0]); i++) 
+	{
+		if ( !strcmp(fieldArr[i].str, field) ) {
+			return BSTR_BIT_GET(rptPtr, fieldArr[i].code);
+		}
+	}
+
+	return NULL;
+}

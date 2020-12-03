@@ -541,6 +541,7 @@ distdir: FORCE
 clean: compiler_clean 
 	-$(DEL_FILE) $(OBJECTS)
 	-$(DEL_FILE) *~ core *.core
+	-$(DEL_FILE) $(DESTDIR)*
 
 
 distclean: clean 
@@ -630,11 +631,12 @@ LinuxTmp/str_util.o: str_util.c glbtypes.h \
 LinuxTmp/sx_dec.o: sx_dec.c glbtypes.h \
 		sysincs.h \
 		mem_chk.h \
+		scl.h \
+		gen_list.h \
+		scdParse_export.h \
 		sx_defs.h \
 		str_util.h \
-		slog.h \
-		scdParse_export.h \
-		gen_list.h
+		slog.h
 	$(CC) -c $(CFLAGS) $(INCPATH) -o LinuxTmp/sx_dec.o sx_dec.c
 
 LinuxTmp/sx_enc.o: sx_enc.c glbtypes.h \

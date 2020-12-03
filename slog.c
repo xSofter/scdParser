@@ -39,7 +39,7 @@
 #include "sysincs.h"
 #include "slog.h"
 #include "str_util.h"
-
+#include <time.h>
 
 #if defined (_WIN32)
 #include <windows.h>
@@ -94,9 +94,9 @@ ST_VOID slog (SD_CONST ST_CHAR *SD_CONST format, ...)
 	// SD_CONST ST_INT lineNum=g_lineNum;
 	// SD_CONST ST_CHAR *SD_CONST functionName=g_funName;
 
-	if(g_lc.logType>g_logType)
+	if(g_lc.logType > g_logType)
 	{
-		printf("logType %d error.\n", g_logType);
+		// printf("logType %d not equals %d.\n", g_logType, g_lc.logType);
 		return;
 	}
 

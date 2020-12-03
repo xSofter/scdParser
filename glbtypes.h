@@ -78,6 +78,8 @@ extern "C" {
 #define SD_FAILURE 	1
 #define SD_BIG_ENDIAN		0
 #define SD_LITTLE_ENDIAN	1
+#define TRUE 1
+#define FALSE 0
 
 /* Define used for 'const' modifier 					*/
 /* DEBUG: someday if all code is changed to consistently use SD_CONST,	*/
@@ -553,6 +555,7 @@ extern "C" {
 /* NOTE: this may also work for setting SD_BYTE_ORDER on other		*/
 /*       platforms that use the GNU C Library				*/
 #include <endian.h>
+#include <stdarg.h>
 #if (__BYTE_ORDER ==__LITTLE_ENDIAN)
   #define SD_BYTE_ORDER	SD_LITTLE_ENDIAN
 #elif (__BYTE_ORDER ==__BIG_ENDIAN)

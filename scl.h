@@ -405,7 +405,7 @@ typedef enum {
 	typedef struct
 	{
 		DBL_LNK l;
-		ST_CHAR domName[MAX_IDENT_LEN+1];	/* domain name (constructed)	*/
+		ST_CHAR domName [MAX_IDENT_LEN+1];	/* domain name (constructed) IED/ldInst/	*/
 		ST_CHAR ldInst  [MAX_IDENT_LEN+1];
 		ST_CHAR prefix  [MAX_IDENT_LEN+1];
 		ST_CHAR lnInst  [MAX_IDENT_LEN+1];
@@ -413,6 +413,9 @@ typedef enum {
 		ST_CHAR doName  [MAX_IDENT_LEN+1];
 		ST_CHAR daName  [MAX_IDENT_LEN+1];
 		ST_CHAR fc      [MAX_FC_LEN+1];	/* ST, MX, etc.			*/
+		ST_CHAR doRefsAddr [MAX_IDENT_LEN+1];
+		ST_CHAR doRefDesc  [MAX_IDENT_LEN+1];
+		ST_CHAR lnRefType  [MAX_IDENT_LEN+1];
 	} SCL_FCDA;
 
 	/* "scl_dai_add" allocates this struct, fills it in,			*/
@@ -428,6 +431,7 @@ typedef enum {
 		DBL_LNK l;
 		ST_CHAR flattened[MAX_FLAT_LEN+1];	/* flattened attribute name	相当于DAI的name*/
 		ST_CHAR *desc;			/* description (optional)*/
+		ST_CHAR *name;			/* name (optional)*/
 		/* constructed from "name" & "ix"*/
 		/* from DOI, SDI, & DAI		*/
 		ST_CHAR *Val;				/* attribute value text		*/
@@ -437,12 +441,13 @@ typedef enum {
 		ST_CHAR valKind[MAX_VALKIND_LEN+1];	/* from DAI			*/
 	} SCL_DAI;
 
-	typedef struct
+	typedef struct scl_sdi
 	{
 		DBL_LNK l;
-		ST_CHAR flattened[MAX_FLAT_LEN+1];	/*  name		*/
+		ST_CHAR flattened[MAX_FLAT_LEN+1];	
 		ST_CHAR *desc;			/* description (optional)*/
-		//SCL_SDI *ssdiHead;
+		ST_CHAR *name;	/* name (required) */
+		struct scl_sdi *ssdiHead;
 		SCL_DAI *sdaiHead;
 	} SCL_SDI;
 
@@ -938,10 +943,11 @@ typedef enum {
 	extern ST_INT scl_debug_mode_error_count;
 
 	/************************************************************************/
-	/* Functions to find objects in SCL_INFO.				*/
+	/* Functions to find objects in SCL_INFO.				
+	/* user utilty functions*/
 	/************************************************************************/
 	SCL_GSE *scl_gse_find (SCL_INFO *scl_info, SCL_LD *scl_ld, SCL_GCB *scl_gcb);
-
+	ST_CHAR *scl_rptCtlget(ST_UINT8* rptPtr, SD_CONST ST_CHAR *field);
 #ifdef __cplusplus
 }
 #endif
