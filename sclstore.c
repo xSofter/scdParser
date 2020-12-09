@@ -43,7 +43,7 @@
 #include "slog.h"
 
 #ifdef DEBUG_SISCO
-SD_CONST static ST_CHAR *SD_CONST thisFileName = __FILE__;
+static ST_CHAR *SD_CONST thisFileName = __FILE__;
 #endif
 
 
@@ -86,7 +86,7 @@ SCL_DO *scl_lntype_add_do (
 	{
 		scl_do = (SCL_DO *) chk_calloc (1, sizeof (SCL_DO));
 		/* Add DO to front of DO List in first entry of LNType list	*/
-		list_add_first (&scl_info->lnTypeHead->doHead, scl_do);
+		list_add_last (&scl_info->lnTypeHead->doHead, scl_do);
 	}
 	else
 	{
@@ -126,7 +126,7 @@ SCL_DA *scl_dotype_add_da (
 	{
 		scl_da = (SCL_DA *) chk_calloc (1, sizeof (SCL_DA));
 		/* Add DA to front of DA List in first entry of DOType list	*/
-		list_add_first (&scl_info->doTypeHead->daHead, scl_da);
+		list_add_last (&scl_info->doTypeHead->daHead, scl_da);
 	}
 	else
 	{
@@ -155,7 +155,7 @@ SCL_DO *scl_dotype_add_sdo (
 		*/
 	
 		/* Add DA to front of DA List in first entry of DOType list	*/
-		list_add_first (&scl_info->doTypeHead->sdoHead, scl_da);
+		list_add_last (&scl_info->doTypeHead->sdoHead, scl_da);
 	}
 	else
 	{
@@ -194,7 +194,7 @@ SCL_BDA *scl_datype_add_bda (
 	{
 		scl_bda = (SCL_BDA *) chk_calloc (1, sizeof (SCL_BDA));
 		/* Add BDA to front of BDA List in first entry of DAType list	*/
-		list_add_first (&scl_info->daTypeHead->bdaHead, scl_bda);
+		list_add_last (&scl_info->daTypeHead->bdaHead, scl_bda);
 	}
 	else
 	{
@@ -236,7 +236,7 @@ SCL_ENUMVAL *scl_enumtype_add_enumval (
 	{
 		scl_enumval = (SCL_ENUMVAL *) chk_calloc (1, sizeof (SCL_ENUMVAL));
 		/* Add EnumVal to front of EnumVal List in first entry of EnumType list	*/
-		list_add_first (&scl_info->enumTypeHead->enumvalHead, scl_enumval);
+		list_add_last (&scl_info->enumTypeHead->enumvalHead, scl_enumval);
 	}
 	else
 	{
@@ -289,7 +289,7 @@ SCL_FCDA *scl_fcda_add (
 /* and adds it to the linked list "lnHead" in SCL_LN.			*/
 /************************************************************************/
 SCL_DOI *scl_doi_add(SCL_INFO *scl_info) {
-	SCL_DAI *scl_doi = NULL;	/* assume failure	*/
+	SCL_DOI *scl_doi = NULL;	/* assume failure	*/
 	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
 	//确保头指针存在
 	if (ldHead && ldHead->lnHead) {
@@ -681,11 +681,11 @@ SCL_LD *scl_ld_create (
 }
 
 /************************************************************************/
-/*			scl_subnet_add					*/
+/*			scl_subnet_create					*/
 /* Allocates SCL_SUBNET struct						*/
 /* and adds it to the linked list "subnetHead" in SCL_INFO.		*/
 /************************************************************************/
-SCL_SUBNET *scl_subnet_add (
+SCL_SUBNET *scl_subnet_create (
 							SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_SUBNET *scl_subnet = NULL;	/* assume failure	*/
@@ -796,9 +796,16 @@ SCL_PORT *scl_port_add (
 	if (scl_info->subnetHead->capHead)
 	{
 		//端口描述为:2-G 11-A..., 不超过4B
-		scl_port = (SCL_PORT *) chk_calloc (1, sizeof (SCL_PORT));
+		SCL_CAP *lastCap = list_find_last(scl_info->subnetHead->capHead);
 		/* Add to front of list.	*/
-		list_add_last (&scl_info->subnetHead->capHead->portHead, scl_port);
+		if (NULL != lastCap) {
+			scl_port = (SCL_PORT *) chk_calloc (1, sizeof (SCL_PORT));
+			list_add_last (&lastCap->portHead, scl_port);
+		} else
+		{
+			SLOG_ERROR ("Cannot add PORT to NULL CAPNODE");
+		}
+		
 		// scl_info->subnetHead->capHead->ports=scl_port;
 	}
 	else
@@ -822,6 +829,40 @@ SCL_ACCESSPOINT *scl_accesspoint_add (SCL_INFO *scl_info)
 
 	return (scl_acpoint);	
 }
+
+/**
+* @Description:  add by tangkai 在解析完每个LDevice后,找到DataSet的每个FCDA地址,并将addr和desc和type记录下来
+*/
+ST_VOID scl_get_dataSet_sAddr (SCL_INFO *sclInfo) {
+	if (!sclInfo) {
+		return;
+	}
+	if (!sclInfo->accessPointHead || !sclInfo->accessPointHead->ldHead || !sclInfo->accessPointHead->ldHead->lnHead || !sclInfo->accessPointHead->ldHead->lnHead->datasetHead)
+	{
+		return;
+	}
+
+	SCL_ACCESSPOINT* acPoint;
+	SCL_LN* scl_ln;
+	SCL_LD* scl_ld;
+	for (acPoint = sclInfo->accessPointHead; acPoint != NULL; acPoint = (SCL_ACCESSPOINT *)list_get_next(sclInfo->accessPointHead, acPoint)) {
+		for (scl_ld = acPoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(acPoint->ldHead, scl_ld)){
+			for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
+				SCL_DATASET* ds = NULL;
+				SCL_FCDA* fcda = NULL;
+				for(ds = scl_ln->datasetHead; ds != NULL; ds = (SCL_DATASET *)list_get_next(scl_ln->datasetHead, ds))
+				{
+					// SLOG_DEBUG("    <DataSet: name %s Desc %s>", ds->name, ds->desc); //
+					for(fcda = ds->fcdaHead; fcda != NULL; fcda = (SCL_FCDA*)list_get_next(ds->fcdaHead, fcda)) 
+					{
+						sx_get_stVal_by_fcda(scl_ld, fcda);													
+					}
+				}
+			}
+		}
+	}
+}
+	
 /************************************************************************/
 /*			scl_info_destroy				*/
 /* Destroy all info stored in the SCL_INFO structure by "scl_parse".	*/

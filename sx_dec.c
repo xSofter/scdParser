@@ -63,7 +63,7 @@ static void XMLCALL expatHandlerEndSkip(void *userData, const char *el);
 
 ST_BOOLEAN sxUseSax;
 ST_BOOLEAN sxIgnoreNS;
-ST_VOID sx_get_stVal_by_fcda(SCL_LD* scl_ld, SCL_FCDA* fcda);
+
 ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl);
 ST_RET sx_rip_xml_file (SX_DEC_CTRL *sxDecCtrl);
 ST_RET sx_rip_xml_mem (SX_DEC_CTRL *sxDecCtrl);
@@ -109,6 +109,7 @@ ST_RET sx_parseExx_mt (ST_CHAR *fileName, ST_INT numItems,
 	fileSize = buf.st_size;
 	cfgData = (ST_CHAR *) chk_malloc (fileSize);
 	if (cfgData == NULL) {
+		SLOG_ERROR ("Fatal error malloc failed");
 		return (SD_FAILURE);
 	}
 	memset(cfgData, 0, fileSize);
@@ -121,16 +122,15 @@ ST_RET sx_parseExx_mt (ST_CHAR *fileName, ST_INT numItems,
 	if (bytesRead < fileSize)
 	{
 		chk_free (cfgData);
-		SLOG_WARN ("Error: Could not read from '%s'", fileName);
+		SLOG_ERROR ("ERROR: Could not read from '%s'", fileName);
 		return (SX_FILE_NOT_FOUND);
 	}
 
-	SLOG_DEBUG("numItems: %d", numItems);
 	rc = sx_parse_mt (bytesRead, cfgData, numItems, itemTbl, usr, 
 		u_sx_el_start_fun, u_sx_el_end_fun); 
 	if (rc != SD_SUCCESS)
 	{
-		SLOG_WARN ("ERROR: parsing failed, return code: '%d'", rc);
+		SLOG_ERROR ("ERROR: parsing failed, return code: '%d'", rc);
 	}
 
 	chk_free (cfgData);
@@ -263,7 +263,7 @@ ST_VOID sxStartElement (SX_DEC_CTRL *sxDecCtrl)
 	{
 		return;
 	}
-	SLOG_DEBUG("sxStartElement tag: %s itemStackLevel %d", sxDecElInfo->tag, stackLevelSave);
+
 	item = _uibed_find_element (sxDecCtrl, tag, &numOccPtr);
 
 	stackLevelSave = sxDecCtrl->itemStackLevel;
@@ -293,12 +293,12 @@ ST_VOID sxStartElement (SX_DEC_CTRL *sxDecCtrl)
 
 		if (*numOccPtr > 1)
 		{
-			SLOG_DEBUG ("Number occurences: %d", *numOccPtr);
+			SLOG_DEBUG ("Tag %s Number occurences: %d", tag, *numOccPtr);
 		}
 
 		/* Save the item for later */
 		++sxDecCtrl->xmlNestLevel;
-		// SLOG_DEBUG ("xmlNestLevel : %d", sxDecCtrl->xmlNestLevel);
+
 		sxDecCtrl->elTbl[sxDecCtrl->xmlNestLevel] = item;
 
 		/* Call the user function, if there is one ... */
@@ -438,7 +438,7 @@ ST_VOID sx_push (SX_DEC_CTRL *sxDecCtrl, ST_INT numItems, SX_ELEMENT *itemTbl,
 	itemTblCtrl->numItems= numItems;
 	sxDecCtrl->auto_pop[sxDecCtrl->itemStackLevel] = auto_pop;
 	++sxDecCtrl->itemStackLevel;
-	SLOG_DEBUG ("Sx_push itemTblCtrl %s", itemTbl->tag);
+
 	/* reset the numOCc elements */
 	for (i = 0; i < numItems; ++i)
 		numOccTbl[i] = 0;
@@ -502,7 +502,7 @@ SX_ELEMENT *_uibed_find_element (SX_DEC_CTRL *sxDecCtrl, ST_CHAR *tag, ST_INT **
 	itemTblCtrl = &sxDecCtrl->items[sxDecCtrl->itemStackLevel-1];
 	item = itemTblCtrl->itemTbl;
 	numItems = itemTblCtrl->numItems;
-	SLOG_DEBUG("item numItems %d", numItems);
+	
 	/* See if this element is in our table */
 	for (i = 0; i < numItems; ++i, ++item)
 	{
@@ -931,27 +931,27 @@ ST_VOID sx_format_string_dec (ST_CHAR *dest, ST_CHAR *src)
 	{
 		/* srcPtr points at a & */
 		/* lets find out if the following characters are what we are looking for */
-		if (strncmp (srcPtr, CODE_APOS, CODE_APOS_LEN) == 0)
+		if (strnicmp (srcPtr, CODE_APOS, CODE_APOS_LEN) == 0)
 		{
 			*dstPtr++ = CHAR_APOS;
 			srcPtr += CODE_APOS_LEN;
 		}
-		else if (strncmp (srcPtr, CODE_QUOT, CODE_QUOT_LEN) == 0)
+		else if (strnicmp (srcPtr, CODE_QUOT, CODE_QUOT_LEN) == 0)
 		{
 			*dstPtr++ = CHAR_QUOT;
 			srcPtr += CODE_QUOT_LEN;
 		}
-		else if (strncmp (srcPtr, CODE_AMP, CODE_AMP_LEN) == 0)
+		else if (strnicmp (srcPtr, CODE_AMP, CODE_AMP_LEN) == 0)
 		{
 			*dstPtr++ = CHAR_AMP;
 			srcPtr += CODE_AMP_LEN;
 		}
-		else if (strncmp (srcPtr, CODE_LT, CODE_LT_LEN) == 0)
+		else if (strnicmp (srcPtr, CODE_LT, CODE_LT_LEN) == 0)
 		{
 			*dstPtr++ = CHAR_LT;
 			srcPtr += CODE_LT_LEN;
 		}
-		else if (strncmp (srcPtr, CODE_GT, CODE_GT_LEN) == 0)
+		else if (strnicmp (srcPtr, CODE_GT, CODE_GT_LEN) == 0)
 		{
 			*dstPtr++ = CHAR_GT;
 			srcPtr += CODE_GT_LEN;
@@ -2053,7 +2053,7 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 						}
 					}
 
-					SLOG_DEBUG ("sxDecElInfo->attr[%d].name: %s", sxDecElInfo->attrCount, sxDecElInfo->attr[sxDecElInfo->attrCount].name);
+					// SLOG_DEBUG ("sxDecElInfo->attr[%d].name: %s", sxDecElInfo->attrCount, sxDecElInfo->attr[sxDecElInfo->attrCount].name);
 
 					if (SX_RIP_DONE)
 					{
@@ -2134,7 +2134,7 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 
 					*attribValDest = 0;	/* terminate the attrib value */
 					
-					SLOG_DEBUG ("sxDecElInfo->attr[%d].value: %s", sxDecElInfo->attrCount, sxDecElInfo->attr[sxDecElInfo->attrCount].value);					
+					// SLOG_DEBUG ("sxDecElInfo->attr[%d].value: %s", sxDecElInfo->attrCount, sxDecElInfo->attr[sxDecElInfo->attrCount].value);					
 
 					strcpy (attribValCopy, sxDecElInfo->attr[sxDecElInfo->attrCount].value);
 					//删除引用符号
@@ -2579,6 +2579,12 @@ ST_VOID sx_get_stVal_by_fcda(SCL_LD* scl_ld, SCL_FCDA* fcda) {
 		SLOG_ERROR("Error scl_ld or scl_lnHead pointer");
 		return;
 	}
+
+	if (!fcda) {
+		SLOG_ERROR("Error fcda Null pointer");
+		return;
+	}
+	
 	SCL_LN* scl_ln = NULL;
 	SCL_DATASET* ds = NULL;
 	// const ST_CHAR fcType[] = {"ST", "SP", "MX", "SG"};

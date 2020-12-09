@@ -36,3 +36,9 @@ ICD/CID xml file parse for IEC61850 protocol
 2 在解析完每个LDevice后,找到DataSet的每个FCDA地址,并将addr和desc和type记录下来  
 3 支持记录每个DAI的name和描述  
 4 解决日志记录级别不正确的问题,无法记录LOG_Error的问题  
+
+## 2020-12-09 
+1 增加SclPub 文件,提供用户获取接口,封装加载和销毁内存接口  
+2 提供解析fcda短地址功能的接口,增加提供解析通信配置的接口  
+3 解决部分字符串处理接口bug  
+4 删除部分过程调试打印  

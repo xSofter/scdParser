@@ -54,6 +54,7 @@ OBJECTS_DIR   = LinuxTmp/
 
 SOURCES       = genlists.c \
 		sclparse.c \
+		sclPub.c \
 		sclstore.c \
 		slog.c \
 		str_util.c \
@@ -63,6 +64,7 @@ SOURCES       = genlists.c \
 		time_str.c 
 OBJECTS       = LinuxTmp/genlists.o \
 		LinuxTmp/sclparse.o \
+		LinuxTmp/sclPub.o \
 		LinuxTmp/sclstore.o \
 		LinuxTmp/slog.o \
 		LinuxTmp/str_util.o \
@@ -212,6 +214,7 @@ DIST          = /usr/local/Qt5.12.1/mkspecs/features/spec_pre.prf \
 		mem_chk.h \
 		scdParse_export.h \
 		scl.h \
+		sclPub.h \
 		slog.h \
 		str_util.h \
 		sx_arb.h \
@@ -219,6 +222,7 @@ DIST          = /usr/local/Qt5.12.1/mkspecs/features/spec_pre.prf \
 		sysincs.h \
 		time_str.h genlists.c \
 		sclparse.c \
+		sclPub.c \
 		sclstore.c \
 		slog.c \
 		str_util.c \
@@ -534,14 +538,14 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/local/Qt5.12.1/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents gen_list.h glbtypes.h mem_chk.h scdParse_export.h scl.h slog.h str_util.h sx_arb.h sx_defs.h sysincs.h time_str.h $(DISTDIR)/
-	$(COPY_FILE) --parents genlists.c sclparse.c sclstore.c slog.c str_util.c sx_dec.c sx_enc.c testScdPaser.cpp time_str.c $(DISTDIR)/
+	$(COPY_FILE) --parents gen_list.h glbtypes.h mem_chk.h scdParse_export.h scl.h sclPub.h slog.h str_util.h sx_arb.h sx_defs.h sysincs.h time_str.h $(DISTDIR)/
+	$(COPY_FILE) --parents genlists.c sclparse.c sclPub.c sclstore.c slog.c str_util.c sx_dec.c sx_enc.c testScdPaser.cpp time_str.c $(DISTDIR)/
 
 
 clean: compiler_clean 
 	-$(DEL_FILE) $(OBJECTS)
 	-$(DEL_FILE) *~ core *.core
-	-$(DEL_FILE) $(DESTDIR)*
+	-$(DEL_FILE) bin/*
 
 
 distclean: clean 
@@ -602,6 +606,9 @@ LinuxTmp/sclparse.o: sclparse.c glbtypes.h \
 		slog.h
 	$(CC) -c $(CFLAGS) $(INCPATH) -o LinuxTmp/sclparse.o sclparse.c
 
+LinuxTmp/sclPub.o: sclPub.c 
+	$(CC) -c $(CFLAGS) $(INCPATH) -o LinuxTmp/sclPub.o sclPub.c
+
 LinuxTmp/sclstore.o: sclstore.c glbtypes.h \
 		sysincs.h \
 		scl.h \
@@ -649,73 +656,7 @@ LinuxTmp/sx_enc.o: sx_enc.c glbtypes.h \
 		gen_list.h
 	$(CC) -c $(CFLAGS) $(INCPATH) -o LinuxTmp/sx_enc.o sx_enc.c
 
-LinuxTmp/testScdPaser.o: testScdPaser.cpp /usr/local/Qt5.12.1/include/QtCore/QDebug \
-		/usr/local/Qt5.12.1/include/QtCore/qdebug.h \
-		/usr/local/Qt5.12.1/include/QtCore/qalgorithms.h \
-		/usr/local/Qt5.12.1/include/QtCore/qglobal.h \
-		/usr/local/Qt5.12.1/include/QtCore/qconfig-bootstrapped.h \
-		/usr/local/Qt5.12.1/include/QtCore/qconfig.h \
-		/usr/local/Qt5.12.1/include/QtCore/qtcore-config.h \
-		/usr/local/Qt5.12.1/include/QtCore/qsystemdetection.h \
-		/usr/local/Qt5.12.1/include/QtCore/qprocessordetection.h \
-		/usr/local/Qt5.12.1/include/QtCore/qcompilerdetection.h \
-		/usr/local/Qt5.12.1/include/QtCore/qtypeinfo.h \
-		/usr/local/Qt5.12.1/include/QtCore/qsysinfo.h \
-		/usr/local/Qt5.12.1/include/QtCore/qlogging.h \
-		/usr/local/Qt5.12.1/include/QtCore/qflags.h \
-		/usr/local/Qt5.12.1/include/QtCore/qatomic.h \
-		/usr/local/Qt5.12.1/include/QtCore/qbasicatomic.h \
-		/usr/local/Qt5.12.1/include/QtCore/qatomic_bootstrap.h \
-		/usr/local/Qt5.12.1/include/QtCore/qgenericatomic.h \
-		/usr/local/Qt5.12.1/include/QtCore/qatomic_cxx11.h \
-		/usr/local/Qt5.12.1/include/QtCore/qatomic_msvc.h \
-		/usr/local/Qt5.12.1/include/QtCore/qglobalstatic.h \
-		/usr/local/Qt5.12.1/include/QtCore/qmutex.h \
-		/usr/local/Qt5.12.1/include/QtCore/qnumeric.h \
-		/usr/local/Qt5.12.1/include/QtCore/qversiontagging.h \
-		/usr/local/Qt5.12.1/include/QtCore/qhash.h \
-		/usr/local/Qt5.12.1/include/QtCore/qchar.h \
-		/usr/local/Qt5.12.1/include/QtCore/qiterator.h \
-		/usr/local/Qt5.12.1/include/QtCore/qlist.h \
-		/usr/local/Qt5.12.1/include/QtCore/qrefcount.h \
-		/usr/local/Qt5.12.1/include/QtCore/qarraydata.h \
-		/usr/local/Qt5.12.1/include/QtCore/qhashfunctions.h \
-		/usr/local/Qt5.12.1/include/QtCore/qstring.h \
-		/usr/local/Qt5.12.1/include/QtCore/qbytearray.h \
-		/usr/local/Qt5.12.1/include/QtCore/qnamespace.h \
-		/usr/local/Qt5.12.1/include/QtCore/qstringliteral.h \
-		/usr/local/Qt5.12.1/include/QtCore/qstringalgorithms.h \
-		/usr/local/Qt5.12.1/include/QtCore/qstringview.h \
-		/usr/local/Qt5.12.1/include/QtCore/qstringbuilder.h \
-		/usr/local/Qt5.12.1/include/QtCore/qpair.h \
-		/usr/local/Qt5.12.1/include/QtCore/qbytearraylist.h \
-		/usr/local/Qt5.12.1/include/QtCore/qstringlist.h \
-		/usr/local/Qt5.12.1/include/QtCore/qregexp.h \
-		/usr/local/Qt5.12.1/include/QtCore/qstringmatcher.h \
-		/usr/local/Qt5.12.1/include/QtCore/qmap.h \
-		/usr/local/Qt5.12.1/include/QtCore/qtextstream.h \
-		/usr/local/Qt5.12.1/include/QtCore/qiodevice.h \
-		/usr/local/Qt5.12.1/include/QtCore/qobject.h \
-		/usr/local/Qt5.12.1/include/QtCore/qobjectdefs.h \
-		/usr/local/Qt5.12.1/include/QtCore/qobjectdefs_impl.h \
-		/usr/local/Qt5.12.1/include/QtCore/qcoreevent.h \
-		/usr/local/Qt5.12.1/include/QtCore/qscopedpointer.h \
-		/usr/local/Qt5.12.1/include/QtCore/qmetatype.h \
-		/usr/local/Qt5.12.1/include/QtCore/qvarlengtharray.h \
-		/usr/local/Qt5.12.1/include/QtCore/qcontainerfwd.h \
-		/usr/local/Qt5.12.1/include/QtCore/qobject_impl.h \
-		/usr/local/Qt5.12.1/include/QtCore/qlocale.h \
-		/usr/local/Qt5.12.1/include/QtCore/qvariant.h \
-		/usr/local/Qt5.12.1/include/QtCore/qshareddata.h \
-		/usr/local/Qt5.12.1/include/QtCore/qvector.h \
-		/usr/local/Qt5.12.1/include/QtCore/qpoint.h \
-		/usr/local/Qt5.12.1/include/QtCore/qset.h \
-		/usr/local/Qt5.12.1/include/QtCore/qcontiguouscache.h \
-		/usr/local/Qt5.12.1/include/QtCore/qsharedpointer.h \
-		/usr/local/Qt5.12.1/include/QtCore/qsharedpointer_impl.h \
-		/usr/local/Qt5.12.1/include/QtCore/QDateTime \
-		/usr/local/Qt5.12.1/include/QtCore/qdatetime.h \
-		scl.h \
+LinuxTmp/testScdPaser.o: testScdPaser.cpp scl.h \
 		gen_list.h \
 		glbtypes.h \
 		scdParse_export.h \

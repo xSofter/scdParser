@@ -159,6 +159,7 @@ extern "C" {
 static ST_CHAR *nd_chk_strdup (ST_CHAR *str)
 {
 	ST_CHAR *new_str;
+  if (*str == '\0') return NULL;
 	new_str = (ST_CHAR *) malloc (strlen (str) + 1);
 	strcpy (new_str, str);
 	return (new_str);

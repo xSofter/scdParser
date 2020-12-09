@@ -747,8 +747,11 @@ ST_RET scl_parse (ST_CHAR *xmlFileName, ST_CHAR *iedName,
 	ret = sx_parseExx_mt (xmlFileName, 
 		sizeof (sclStartElements)/sizeof(SX_ELEMENT), sclStartElements,
 		&sclDecCtrl, _scl_unknown_el_start, _scl_unknown_el_end);
-
-	SLOG_DEBUG ("scl_parse return %d iedName: %s", ret ,sclDecCtrl.sclInfo->lIEDHead->iedName);
+	if (ret == SD_SUCCESS) {
+		//遍历完scl之后,再做其他工作
+		scl_get_dataSet_sAddr(sclInfo);
+	}
+	SLOG_DEBUG ("sx_parseExx_mt finished %d iedName: %s", ret ,sclDecCtrl.sclInfo->lIEDHead->iedName);
 	/* NOTE: sx_parseEx_mt doesn't log error if file open fails, so log here*/
 	/* It may not log some other errors, so log any other error here too.	*/
 	if (ret == SX_FILE_NOT_FOUND)
@@ -766,7 +769,6 @@ ST_RET scl_parse (ST_CHAR *xmlFileName, ST_CHAR *iedName,
 
 static ST_VOID _SCL_SEFun (SX_DEC_CTRL *sxDecCtrl)
 {
-	SLOG_DEBUG ("Run _SCL_SEFun");
 	//SCL 层无事可做,下一层压栈
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 		sx_push (sxDecCtrl, sizeof(SCLElements)/sizeof(SX_ELEMENT), SCLElements, SD_FALSE);
@@ -879,7 +881,7 @@ static ST_VOID _Communication_PortMapFun(SX_DEC_CTRL *sxDecCtrl)
 
 	if (scl_get_attr_ptr (sxDecCtrl, "type", &typeStrValue, SCL_ATTR_OPTIONAL) == SD_SUCCESS)
 	{
-		if (strcasecmp (typeStrValue, "portMap") != 0)
+		if (strcmpi (typeStrValue, "portMap") != 0)
 		{
 			SLOG_ERROR ("Private attribute type='%s' not allowed. Assuming type desc='portMap' or 'portmap'..etc ", typeStrValue);
 		}
@@ -907,10 +909,10 @@ static ST_VOID _SubNetwork_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
 		SCL_SUBNET *scl_subnet;
-		scl_subnet = scl_subnet_add (sclDecCtrl->sclInfo);
+		scl_subnet = scl_subnet_create (sclDecCtrl->sclInfo);
 		if (scl_subnet == NULL)
 		{
-			scl_stop_parsing (sxDecCtrl, "scl_subnet_add", SX_USER_ERROR);
+			scl_stop_parsing (sxDecCtrl, "scl_subnet_create", SX_USER_ERROR);
 			return;
 		}
 		/* Get required attributes.	*/
@@ -942,7 +944,6 @@ static ST_VOID _ConnectedAP_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	SCL_DEC_CTRL *sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
 	ST_RET ret;
 	ST_CHAR *desc;
-	SLOG_DEBUG ("Parse _Communication_PortMapFun_ConnectedAP_SEFun");
 	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
 		SCL_CAP *scl_cap;
@@ -1131,7 +1132,7 @@ static ST_VOID _S1_ConnPortFun (SX_DEC_CTRL *sxDecCtrl)
 		// 	scl_stop_parsing (sxDecCtrl, "SMV", SX_USER_ERROR);
 		// 	return;
 		// }
-		SLOG_DEBUG("Parse _S1_ConnPortFun");
+		// SLOG_DEBUG("Parse _S1_ConnPortFun");
 		ret = scl_get_attr_ptr (sxDecCtrl, "type", &typeStr, SCL_ATTR_REQUIRED);
 		if (ret != SD_SUCCESS) {
 			scl_stop_parsing (sxDecCtrl, "type", SX_USER_ERROR);
@@ -1260,7 +1261,6 @@ static ST_VOID _Connection_P_Port_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	ST_INT strLen;
 	SCL_PORT *scl_port;
 
-	SLOG_DEBUG("Parse _Connection_P_Port_SEFun");
 	if (sxDecCtrl->reason == SX_ELEMENT_END)
 	{
 		ret = scl_get_attr_ptr (sxDecCtrl, "type", &str, required);
@@ -1536,37 +1536,7 @@ static ST_VOID _LDevice_SEFun (SX_DEC_CTRL *sxDecCtrl)
 			SLOG_ERROR ("Cannot create LD: constructed domain name too long");
 			scl_stop_parsing (sxDecCtrl, "_LDevice_SEFun", SX_USER_ERROR);
 		}
-		sx_pop (sxDecCtrl);
-		SLOG_DEBUG ("Parse LDevice element end");
-		/**
-   		* @Description:  add by tangkai 在解析完每个LDevice后,找到DataSet的每个FCDA地址,并将addr和desc和type记录下来
-   		*/
-	   SCL_LN* scl_ln;
-		for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
-			// ST_UCHAR dsCount = scl_ln->datasetCount;
-			// SLOG_DEBUG("  <LN:%s %s %s %s %s %s>", scl_ln->varName, scl_ln->desc, scl_ln->lnType, scl_ln->lnClass, scl_ln->prefix, scl_ln->inst);
-			SCL_DATASET* ds = NULL;
-			SCL_FCDA* fcda = NULL;
-			for(ds = scl_ln->datasetHead; ds != NULL; ds = (SCL_DATASET *)list_get_next(scl_ln->datasetHead, ds))
-			{
-				// SLOG_DEBUG("    <DataSet: name %s Desc %s>", ds->name, ds->desc); //
-				
-				for(fcda = ds->fcdaHead; fcda != NULL; fcda = (SCL_FCDA*)list_get_next(ds->fcdaHead, fcda)) 
-				{
-					sx_get_stVal_by_fcda(scl_ld, fcda);	
-					// SLOG_DEBUG("      <FCDA ldInst=%s prefix=%s lnClass=%s lnInst=%s doName=%s daName=%s fc=%s desc=%s sAddr=%s>", 
-					// 					fcda->ldInst,
-					// 					fcda->prefix, 
-					// 					fcda->lnClass,
-					// 					fcda->lnInst,
-					// 					fcda->doName,
-					// 					fcda->daName, 
-					// 					fcda->fc,
-					// 					fcda->doRefDesc, 
-					// 					fcda->doRefsAddr); 													
-				}
-			}
-		}		   
+		sx_pop (sxDecCtrl);	 
 	}
 }
 

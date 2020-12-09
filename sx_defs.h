@@ -176,7 +176,7 @@ extern "C" {
 #define SX_ELF_CEND		0x0002
 #define SX_ELF_CSTARTEND	0x0003
 
-#define SX_ELF_RPT		0x0008
+#define SX_ELF_RPT		0x0008		//不可重复
 #define SX_ELF_OPT		0x0004
 #define SX_ELF_OPTRPT		0x000C		//可重入
 

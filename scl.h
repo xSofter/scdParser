@@ -810,6 +810,18 @@ typedef enum {
 		/* Logical Device (MMS Domain) definitions (from AccessPoint section)	*/
 		SCL_LD *ldHead;		/* head of list of LDevice defs		*/
 	} SCL_ACCESSPOINT;
+
+	/************************************************************************/
+  	/* @Description:  SCL_LNTEMPLATE 直接存放每个LNTypeNode的类型,数据		 */
+  	/************************************************************************/
+  	typedef struct scl_lnTypeTemplates
+	{
+		SCL_DO* doHead;	
+		SCL_DA* daHead;
+		SCL_BDA* badInfoHead[10];
+		SCL_ENUMVAL* enumvalHead;
+	}SCL_LNTEMPLATE;
+
 	/************************************************************************/
 	/*			SCL_INFO					*/
 	/* This structure contains all information extracted from the SCL file	*/
@@ -832,7 +844,7 @@ typedef enum {
 		SCL_DATYPE *daTypeHead;	/* head of list of DAType defs		*/
 		SCL_ENUMTYPE *enumTypeHead;	/* head of list of EnumType defs	*/
 
-	} SCL_INFO;
+	} SCL_INFO; 
 
 	/************************************************************************/
 	/************************************************************************/
@@ -906,7 +918,7 @@ typedef enum {
 	SCL_LD *scl_ld_create (
 		SCL_INFO *scl_info);
 
-	SCL_SUBNET *scl_subnet_add (
+	SCL_SUBNET *scl_subnet_create (
 		SCL_INFO *scl_info);
 
 	SCL_CAP *scl_cap_add (
@@ -948,6 +960,8 @@ typedef enum {
 	/************************************************************************/
 	SCL_GSE *scl_gse_find (SCL_INFO *scl_info, SCL_LD *scl_ld, SCL_GCB *scl_gcb);
 	ST_CHAR *scl_rptCtlget(ST_UINT8* rptPtr, SD_CONST ST_CHAR *field);
+	ST_VOID sx_get_stVal_by_fcda(SCL_LD* scl_ld, SCL_FCDA* fcda);
+	ST_VOID scl_get_dataSet_sAddr (SCL_INFO *sclInfo);
 #ifdef __cplusplus
 }
 #endif
