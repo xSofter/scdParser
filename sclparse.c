@@ -726,8 +726,8 @@ ST_RET construct_flattened (ST_CHAR *flattened, size_t maxlen, ST_CHAR *name, ST
 /*			scl_parse					*/
 /************************************************************************/
 
-ST_RET scl_parse (ST_CHAR *xmlFileName, ST_CHAR *iedName, 
-				  ST_CHAR *accessPointName, SCL_INFO *sclInfo)
+ST_RET scl_parse (const ST_CHAR *xmlFileName, const ST_CHAR *iedName, 
+				  const ST_CHAR *accessPointName, SCL_INFO *sclInfo)
 {
 	ST_RET ret;
 	SCL_DEC_CTRL sclDecCtrl;	/* start with clean struct.	*/
@@ -751,7 +751,7 @@ ST_RET scl_parse (ST_CHAR *xmlFileName, ST_CHAR *iedName,
 		//遍历完scl之后,再做其他工作
 		scl_get_dataSet_sAddr(sclInfo);
 	}
-	SLOG_DEBUG ("sx_parseExx_mt finished %d iedName: %s", ret ,sclDecCtrl.sclInfo->lIEDHead->iedName);
+	SLOG_DEBUG ("sx_parseExx_mt finished result %d iedName: %s", ret ,sclDecCtrl.sclInfo->lIEDHead->iedName);
 	/* NOTE: sx_parseEx_mt doesn't log error if file open fails, so log here*/
 	/* It may not log some other errors, so log any other error here too.	*/
 	if (ret == SX_FILE_NOT_FOUND)
@@ -1319,7 +1319,7 @@ static ST_VOID _IED_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	ST_CHAR *desc, *iedType, *manufacturer;
 
 	ST_RET ret;
-	ST_BOOLEAN required = SD_FALSE;
+	// ST_BOOLEAN required = SD_FALSE;
 
 	sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
 	
@@ -1331,10 +1331,10 @@ static ST_VOID _IED_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		list_add_first (&sclDecCtrl->sclInfo->lIEDHead, scl_lIED);
 
 		/* start required attributes */
-		required = SD_TRUE;
+		// required = SD_TRUE;
 
-		ret = scl_get_attr_ptr (sxDecCtrl, "name", &str, required);
-		ret |= scl_get_attr_ptr (sxDecCtrl, "configVersion", &configver, required);
+		ret = scl_get_attr_ptr (sxDecCtrl, "name", &str, SCL_ATTR_REQUIRED);
+		ret |= scl_get_attr_ptr (sxDecCtrl, "configVersion", &configver, SCL_ATTR_OPTIONAL);
 		if (ret != SD_SUCCESS)
 		{
 			return;
@@ -1348,13 +1348,13 @@ static ST_VOID _IED_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		//sclDecCtrl->iedNameMatched = SD_TRUE;
 
 		/* start optional attributes */
-		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &desc, required);
+		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &desc, SCL_ATTR_REQUIRED);
 		if (ret == SD_SUCCESS)
 			scl_lIED->desc = chk_strdup (desc);	/* Alloc & copy desc string	*/
-		ret = scl_get_attr_ptr (sxDecCtrl, "type", &iedType, required);
+		ret = scl_get_attr_ptr (sxDecCtrl, "type", &iedType, SCL_ATTR_REQUIRED);
 		if (ret == SD_SUCCESS)
 			scl_lIED->iedType = chk_strdup (iedType);	/* Alloc & copy desc string	*/			
-		ret = scl_get_attr_ptr (sxDecCtrl, "manufacturer", &manufacturer, required);
+		ret = scl_get_attr_ptr (sxDecCtrl, "manufacturer", &manufacturer, SCL_ATTR_OPTIONAL);
 		if (ret == SD_SUCCESS)
 			scl_lIED->manufacturer = chk_strdup (manufacturer);	/* Alloc & copy desc string	*/	
 
@@ -1434,14 +1434,14 @@ static ST_VOID _AccessPoint_SEFun (SX_DEC_CTRL *sxDecCtrl)
 			return;
 		}
 		required = SD_TRUE;
-		ret = scl_get_attr_ptr (sxDecCtrl, "name", &name, SD_TRUE);
+		ret = scl_get_attr_ptr (sxDecCtrl, "name", &name, SCL_ATTR_REQUIRED);
 		if (strlen(name) > FIX_STR_LEN_3)
 		{
 			SLOG_ERROR("AccessPoint name= %s is illegal.", name);
 			scl_stop_parsing (sxDecCtrl, "name", SX_REQUIRED_TAG_NOT_FOUND);
 			return;
 		}		
-		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &desc, SD_TRUE);
+		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &desc, SCL_ATTR_OPTIONAL);
 	
 		scl_acpoint->desc =  chk_strdup (desc); /* Alloc & copy desc string	*/
 		strncpy_safe(scl_acpoint->name, name, FIX_STR_LEN_3);
@@ -1528,7 +1528,7 @@ static ST_VOID _LDevice_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		if (strlen(sclDecCtrl->iedName) + strlen(scl_ld->inst) <= MAX_IDENT_LEN)
 		{
 			strcpy (scl_ld->domName, sclDecCtrl->iedName);	/* construct domain name*/
-			//strcat (scl_ld->domName, scl_ld->inst);
+
 			strcpy(scl_ld->apName,sclDecCtrl->accessPointName);
 		}
 		else
@@ -1716,27 +1716,42 @@ static ST_VOID _FCDA_SFun (SX_DEC_CTRL *sxDecCtrl)
 
 		/* Construct domain name from SCL info	*/
 		/* ASSUME nameStructure="IEDName" (domain name = IED name + LDevice inst)*/
-		/* nameStructure="FuncName" is OBSOLETE.				*/
+		//nameStructure="FuncName" is OBSOLETE.
+		//TEMPLATECTRL/GOOUTGGIO2.Ind5.stVal.[ST] or 
+		//TEMPLATEPROT/WarnGGIO1.Alm19[ST]
 		if (strlen(scl_fcda->ldInst) + strlen(scl_fcda->prefix)+ strlen(scl_fcda->lnClass) + 
 		   strlen(scl_fcda->lnInst) + strlen(scl_fcda->doName) + strlen(scl_fcda->daName) <= MAX_IDENT_LEN)
 		{
-			strcpy (scl_fcda->domName, scl_fcda->ldInst);
+			if  (!scl_info->lIEDHead && !scl_info->lIEDHead->iedName) {
+				SLOG_ERROR ("There is no IEDHEad or IedName");
+				strcpy (scl_fcda->domName, scl_fcda->ldInst);
+			} 
+			else
+			{
+				strcpy (scl_fcda->domName, scl_info->lIEDHead->iedName);
+			}
+			
+			strcat (scl_fcda->domName, scl_fcda->ldInst);
 			strcat (scl_fcda->domName, "/");
 			if (strlen(scl_fcda->prefix)) 
 			{
 				strcat (scl_fcda->domName, scl_fcda->prefix);
-				strcat (scl_fcda->domName, "/");
+				// strcat (scl_fcda->domName, "/");
 			}
 			strcat (scl_fcda->domName, scl_fcda->lnClass);
-			strcat (scl_fcda->domName, "/");
+			// strcat (scl_fcda->domName, "/");
 			strcat (scl_fcda->domName, scl_fcda->lnInst);
-			strcat (scl_fcda->domName, "/");
+			strcat (scl_fcda->domName, ".");
 			strcat (scl_fcda->domName, scl_fcda->doName);
 			if (strlen(scl_fcda->daName)) 
 			{
-				strcat (scl_fcda->domName, "/");
+				strcat (scl_fcda->domName, ".");
 				strcat (scl_fcda->domName, scl_fcda->daName);
 			}
+			strcat (scl_fcda->domName, "[");
+			strcat (scl_fcda->domName, scl_fcda->fc);
+			strcat (scl_fcda->domName, "]");
+			
 
 		}
 		else

@@ -294,7 +294,7 @@ ST_VOID slogCallStack (LOG_CTRL *lc, SD_CONST ST_CHAR *txt)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-ST_RET slog_start (SD_CONST ST_UINT32 logCtrl, SD_CONST ST_UINT32 logType, ST_CHAR *sFile)
+ST_RET slog_start (SD_CONST ST_UINT32 logCtrl, SD_CONST ST_UINT32 logType, SD_CONST ST_CHAR *sFile)
 {
 	g_lc.logCtrl=logCtrl;
 	g_lc.logType=logType;

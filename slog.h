@@ -1,6 +1,6 @@
 /*
  * @Date: 2020-11-16 08:45
- * @LastEditTime: 2020-11-27 15:16
+ * @LastEditTime: 2020-12-11 14:06
  * @LastEditors: tangkai3
  * @Description: 
  */
@@ -68,7 +68,7 @@ ST_VOID slogHead (SD_CONST ST_INT logType,
 				SD_CONST ST_CHAR *SD_CONST functionName,
 			  	SD_CONST ST_INT lineNum);
 
-ST_RET SCDPAESE_API slog_start (ST_UINT32 logCtrl,ST_UINT32 logType,ST_CHAR *sFile);
+ST_RET SCDPAESE_API slog_start (ST_UINT32 logCtrl,ST_UINT32 logType, SD_CONST ST_CHAR *sFile);
 ST_RET SCDPAESE_API slog_end ();
 
 #define DEBUG_SISCO

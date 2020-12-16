@@ -34,7 +34,7 @@
 /* __FILE__ strings.							*/
 
 #ifdef DEBUG_SISCO
-SD_CONST static ST_CHAR *SD_CONST thisFileName = __FILE__;
+static ST_CHAR *SD_CONST thisFileName = __FILE__;
 #endif
 
 
@@ -242,7 +242,7 @@ ST_VOID sx_end_encode (SX_ENC_CTRL *sxEncCtrl)
 		if (sxEncCtrl->errCode == SD_SUCCESS)
 		{
 			xmlLen = sxEncCtrl->nextWritePos - sxEncCtrl->xmlBuf;
-			SLOG_DEBUG ("Encode XML Complete:");
+			SLOG_DEBUG ("Encode XML Complete: xmlLen %ld", xmlLen);
 		}
 	}
 	M_FREE (NULL, sxEncCtrl);
@@ -911,14 +911,14 @@ ST_RET XmlDurationToString (ST_CHAR *buffer, ST_LONG size, SX_DURATION *sxDurati
 
 ST_VOID sx_wr_duration (SX_ENC_CTRL *sxEncCtrl, SX_DURATION *sxDuration)
 {
-	ST_RET rc;
+	// ST_RET rc;
 	ST_CHAR *_writePos;
 	ST_CHAR buffer[100]; /* arbitrary size */
 
 	if (sxEncCtrl->errCode != 0)
 		return;
 
-	rc = XmlDurationToString (buffer, sizeof(buffer), sxDuration);
+	XmlDurationToString (buffer, sizeof(buffer), sxDuration);
 
 	/* place newly created date/time string in xml encode structure */
 	_writePos = sxEncCtrl->nextWritePos;

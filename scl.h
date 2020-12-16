@@ -846,6 +846,48 @@ typedef enum {
 
 	} SCL_INFO; 
 
+	/**
+  	* @Description: 
+  	*/
+	typedef struct {
+		DBL_LNK l;
+		ST_CHAR subNetWorkName[ MAX_IDENT_LEN+1 ];
+		ST_CHAR subNetWorkType[ MAX_IDENT_LEN+1 ];
+		ST_CHAR apName[MAX_IDENT_LEN + 1]; //G1 S1 
+		SCL_ADDRESS address;
+		SCL_GSE*  gseHead;      /* head of list of GSE defs	*/
+		SCL_SMV*  smvHead;      /* head of list of SMV defs	*/
+		SCL_PORT* portHead;		/* head of list of */
+	}SCL_COMM;
+
+	/**
+	 * @Description: 保存用户LN信息
+	 */
+	typedef struct {
+		DBL_LNK l;
+		ST_CHAR ldinst[MAX_IDENT_LEN+1];	/* LD inst name		*/
+		ST_CHAR lnVarName[MAX_IDENT_LEN+1];	/* variable name (constructed)	*/
+		ST_CHAR *lnDesc;			/* description (optional)*/
+		ST_CHAR doiName[MAX_IDENT_LEN+1];
+		ST_CHAR *doiDesc;			/* description (optional)*/
+		ST_CHAR daiName[MAX_IDENT_LEN+1];
+		ST_CHAR *daiDesc;			/* description (optional)*/
+		ST_CHAR daisAddr[MAX_IDENT_LEN+1];
+		ST_CHAR *daiVal;
+		ST_CHAR daiType[MAX_IDENT_LEN+1];
+		ST_CHAR fc[MAX_FC_LEN+1];		/* for DA only: functional constraint	*/
+		ST_CHAR *ref;
+	}SCL_LNINFO;
+
+	/**
+  	* @Description: SCL 结构化解析结果存放在该结构内
+  	*/
+	typedef struct 
+	{
+		SCL_COMM* pCommHead;
+		SCL_DATASET* pDataSet;
+		SCL_LNINFO* pLnInfo;
+	}SCL_USER;
 	/************************************************************************/
 	/************************************************************************/
 	/* FUNCTIONS to store SCL info in "SCL_INFO" structure.			*/
@@ -938,8 +980,8 @@ typedef enum {
 	/*			scl_parse					*/
 	/* Parses SCL file and stores extracted info in SCL_INFO structure.	*/
 	/************************************************************************/
-	SCDPAESE_API ST_RET scl_parse (ST_CHAR *xmlFileName, ST_CHAR *iedName, 
-		ST_CHAR *accessPointName, SCL_INFO *sclInfo);
+	SCDPAESE_API ST_RET scl_parse (SD_CONST ST_CHAR *xmlFileName, SD_CONST ST_CHAR *iedName, 
+		SD_CONST ST_CHAR *accessPointName, SCL_INFO *sclInfo);
 	SCDPAESE_API ST_VOID scl_log_all (SCL_INFO *scl_info);
 
 	/************************************************************************/

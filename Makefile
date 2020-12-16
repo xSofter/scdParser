@@ -16,7 +16,7 @@ CC            = gcc
 CXX           = g++
 DEFINES       = -DQT_DEPRECATED_WARNINGS -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB
 CFLAGS        = -pipe -O2 -Wall -W -D_REENTRANT -fPIC $(DEFINES)
-CXXFLAGS      = -pipe -O2 -std=gnu++11 -Wall -W -D_REENTRANT -fPIC $(DEFINES)
+CXXFLAGS      = -pipe -D_LINUX_ -O2 -std=gnu++11 -Wall -W -D_REENTRANT -fPIC $(DEFINES)
 INCPATH       = -I. -I. -I/usr/local/Qt5.12.1/include -I/usr/local/Qt5.12.1/include/QtGui -I/usr/local/Qt5.12.1/include/QtCore -ILinuxTmp -I/usr/local/Qt5.12.1/mkspecs/linux-g++
 QMAKE         = /usr/local/Qt5.12.1/bin/qmake
 DEL_FILE      = rm -f
@@ -40,7 +40,7 @@ DISTNAME      = scdParser1.0.0
 DISTDIR = /home/scdParse/scdParser/LinuxTmp/scdParser1.0.0
 LINK          = g++
 LFLAGS        = -Wl,-O1 -Wl,-rpath,/usr/local/Qt5.12.1/lib
-LIBS          = $(SUBLIBS) -L/usr/local/Qt5.12.1/lib -lQt5Gui -lQt5Core -lpthread   
+LIBS          = $(SUBLIBS) -lsqlite3 -L/usr/local/Qt5.12.1/lib -lQt5Gui -lQt5Core -lpthread   
 AR            = ar cqs
 RANLIB        = 
 SED           = sed
@@ -57,16 +57,18 @@ SOURCES       = genlists.c \
 		sclPub.c \
 		sclstore.c \
 		slog.c \
+		storage.c \
 		str_util.c \
 		sx_dec.c \
 		sx_enc.c \
-		testScdPaser.cpp \
+		testScdPaser.c \
 		time_str.c 
 OBJECTS       = LinuxTmp/genlists.o \
 		LinuxTmp/sclparse.o \
 		LinuxTmp/sclPub.o \
 		LinuxTmp/sclstore.o \
 		LinuxTmp/slog.o \
+		LinuxTmp/storage.o \
 		LinuxTmp/str_util.o \
 		LinuxTmp/sx_dec.o \
 		LinuxTmp/sx_enc.o \
@@ -216,6 +218,7 @@ DIST          = /usr/local/Qt5.12.1/mkspecs/features/spec_pre.prf \
 		scl.h \
 		sclPub.h \
 		slog.h \
+		storage.h \
 		str_util.h \
 		sx_arb.h \
 		sx_defs.h \
@@ -225,10 +228,11 @@ DIST          = /usr/local/Qt5.12.1/mkspecs/features/spec_pre.prf \
 		sclPub.c \
 		sclstore.c \
 		slog.c \
+		storage.c \
 		str_util.c \
 		sx_dec.c \
 		sx_enc.c \
-		testScdPaser.cpp \
+		testScdPaser.c \
 		time_str.c
 QMAKE_TARGET  = scdParser
 DESTDIR       = bin/
@@ -538,14 +542,13 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/local/Qt5.12.1/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents gen_list.h glbtypes.h mem_chk.h scdParse_export.h scl.h sclPub.h slog.h str_util.h sx_arb.h sx_defs.h sysincs.h time_str.h $(DISTDIR)/
-	$(COPY_FILE) --parents genlists.c sclparse.c sclPub.c sclstore.c slog.c str_util.c sx_dec.c sx_enc.c testScdPaser.cpp time_str.c $(DISTDIR)/
+	$(COPY_FILE) --parents gen_list.h glbtypes.h mem_chk.h scdParse_export.h scl.h sclPub.h slog.h storage.h str_util.h sx_arb.h sx_defs.h sysincs.h time_str.h $(DISTDIR)/
+	$(COPY_FILE) --parents genlists.c sclparse.c sclPub.c sclstore.c slog.c storage.c str_util.c sx_dec.c sx_enc.c testScdPaser.c time_str.c $(DISTDIR)/
 
 
 clean: compiler_clean 
 	-$(DEL_FILE) $(OBJECTS)
 	-$(DEL_FILE) *~ core *.core
-	-$(DEL_FILE) bin/*
 
 
 distclean: clean 
@@ -570,7 +573,7 @@ compiler_moc_predefs_make_all: LinuxTmp/moc_predefs.h
 compiler_moc_predefs_clean:
 	-$(DEL_FILE) LinuxTmp/moc_predefs.h
 LinuxTmp/moc_predefs.h: /usr/local/Qt5.12.1/mkspecs/features/data/dummy.cpp
-	g++ -pipe -O2 -std=gnu++11 -Wall -W -dM -E -o LinuxTmp/moc_predefs.h /usr/local/Qt5.12.1/mkspecs/features/data/dummy.cpp
+	g++ -pipe -D_LINUX_ -O2 -std=gnu++11 -Wall -W -dM -E -o LinuxTmp/moc_predefs.h /usr/local/Qt5.12.1/mkspecs/features/data/dummy.cpp
 
 compiler_moc_header_make_all:
 compiler_moc_header_clean:
@@ -606,7 +609,15 @@ LinuxTmp/sclparse.o: sclparse.c glbtypes.h \
 		slog.h
 	$(CC) -c $(CFLAGS) $(INCPATH) -o LinuxTmp/sclparse.o sclparse.c
 
-LinuxTmp/sclPub.o: sclPub.c 
+LinuxTmp/sclPub.o: sclPub.c sclPub.h \
+		glbtypes.h \
+		mem_chk.h \
+		sysincs.h \
+		slog.h \
+		scdParse_export.h \
+		gen_list.h \
+		scl.h \
+		str_util.h
 	$(CC) -c $(CFLAGS) $(INCPATH) -o LinuxTmp/sclPub.o sclPub.c
 
 LinuxTmp/sclstore.o: sclstore.c glbtypes.h \
@@ -626,6 +637,9 @@ LinuxTmp/slog.o: slog.c glbtypes.h \
 		gen_list.h \
 		str_util.h
 	$(CC) -c $(CFLAGS) $(INCPATH) -o LinuxTmp/slog.o slog.c
+
+LinuxTmp/storage.o: storage.c storage.h
+	$(CC) -c $(CFLAGS) $(INCPATH) -o LinuxTmp/storage.o storage.c
 
 LinuxTmp/str_util.o: str_util.c glbtypes.h \
 		sysincs.h \
@@ -656,12 +670,17 @@ LinuxTmp/sx_enc.o: sx_enc.c glbtypes.h \
 		gen_list.h
 	$(CC) -c $(CFLAGS) $(INCPATH) -o LinuxTmp/sx_enc.o sx_enc.c
 
-LinuxTmp/testScdPaser.o: testScdPaser.cpp scl.h \
-		gen_list.h \
+LinuxTmp/testScdPaser.o: testScdPaser.c sclPub.h \
 		glbtypes.h \
+		mem_chk.h \
+		sysincs.h \
+		slog.h \
 		scdParse_export.h \
-		slog.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o LinuxTmp/testScdPaser.o testScdPaser.cpp
+		gen_list.h \
+		scl.h \
+		storage.h \
+		str_util.h
+	$(CC) -c $(CFLAGS) $(INCPATH) -o LinuxTmp/testScdPaser.o testScdPaser.c
 
 LinuxTmp/time_str.o: time_str.c glbtypes.h \
 		sysincs.h \
