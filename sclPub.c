@@ -1,6 +1,6 @@
 /*
  * @Date: 2020-12-07 09:25
- * @LastEditTime: 2020-12-22 14:28
+ * @LastEditTime: 2020-12-22 19:20
  * @LastEditors: tangkai3
  * @Description: 模块对外接口函数
  */
@@ -400,8 +400,12 @@ ST_RET sclGetDoiNameValue(SCL_INFO* sclInfo, void* database) {
 	SCL_ACCESSPOINT *scl_acpoint;
 	SCL_LD *scl_ld = NULL;
 	SCL_LN *scl_ln;
+	if (!sclInfo->lIEDHead) {
+		SLOG_ERROR("Empty ied");
+		return -2;		
+	}
 
-	if (list_get_sizeof(sclInfo->accessPointHead) == 0){
+	if (list_get_sizeof(sclInfo->lIEDHead->accessPointHead) == 0){
 		SLOG_ERROR("Empty accessPoint");
 		return -2;
 	}
@@ -419,106 +423,110 @@ ST_RET sclGetDoiNameValue(SCL_INFO* sclInfo, void* database) {
 		if (stmt) sqlite3_finalize(stmt);
 	}
 #endif	
-	for (scl_acpoint = sclInfo->accessPointHead; scl_acpoint != NULL; scl_acpoint = (SCL_ACCESSPOINT *)list_get_next(sclInfo->accessPointHead, scl_acpoint))
-	{
-		for (scl_ld = scl_acpoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(scl_acpoint->ldHead, scl_ld)){
-			//for test
-			// if (strcasecmp(scl_ld->inst, "prot")) continue;
-			for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
-				SLOG_DEBUG("<LN VarName=\"%s\" desc=\"%s\" lnType=\"%s\" lnClass=\"%s\" prefix=\"%s\" inst=\"%s\">",
-				scl_ln->varName, scl_ln->desc, scl_ln->lnType, scl_ln->lnClass, scl_ln->prefix, scl_ln->inst);	
-				
-				SCL_DOI* doiList;
+	SCL_IED* scl_ied;
+	for (scl_ied = sclInfo->lIEDHead; scl_ied != NULL; scl_ied = (SCL_IED *)list_get_next(sclInfo->lIEDHead, scl_ied)) {
+		SLOG_DEBUG("==============================GetLNData IED NAME: %s==============================", scl_ied->iedName);
+		for (scl_acpoint = scl_ied->accessPointHead; scl_acpoint != NULL; scl_acpoint = (SCL_ACCESSPOINT *)list_get_next(scl_ied->accessPointHead, scl_acpoint))
+		{
+			for (scl_ld = scl_acpoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(scl_acpoint->ldHead, scl_ld)){
 				//for test
-				// if (strcasecmp(scl_ln->varName, "ITCTR2")) continue;
-				
-				for (doiList = scl_ln->doiHead; doiList != NULL; doiList = (SCL_DOI *)list_get_next(scl_ln->doiHead, doiList)) {
-					ST_CHAR* doiType = sclGetDOTypeByDoName(sclInfo, scl_ln->lnType, doiList->name);
-					SLOG_DEBUG("  <DOI name=\"%s\" desc=\"%s\" type=\"%s\">", doiList->name, doiList->desc, doiType);
-					SCL_SDI* pSdi;
-					SCL_DAI* pDai;
-					ST_INT rec = 0;
-					for (pSdi = doiList->sdiHead; pSdi != NULL; pSdi = (SCL_SDI *)list_get_next(doiList->sdiHead, pSdi)) {
-						// ST_CHAR* daTypeName = sclGetDaBySdiName(sclInfo, doType, pSdi->name);
-	
-						if (list_get_sizeof(pSdi->sdaiHead) > 0) {
-							SCL_DAI* pSDAi;
-							for (pSDAi = pSdi->sdaiHead; pSDAi != NULL; pSDAi = (SCL_DAI *)list_get_next(pSdi->sdaiHead, pSDAi)) {
-								ST_CHAR* dabType;
-								ST_CHAR* fc;
-								if ((rec =  sclGetDaiTypeByDaiflatName(sclInfo, doiType, pSDAi->flattened, &dabType, &fc)) !=0){
-									SLOG_ERROR ("sclGetDaiTypeByDaiflatName err %d", rec);
-									continue;
-								}
-								ST_CHAR refStr[100 + 1] = {0};
-								snprintf (refStr, 100, "%s%s/%s$%s$%s$%s", sclInfo->lIEDHead->iedName, scl_ld->inst, scl_ln->varName, fc, doiList->name, pSDAi->flattened);
-								SLOG_DEBUG ("    <DAI ref=\"%s\" fc=\"%s\" sAddr=\"%s\" value=\"%s\" daType=\"%s\"/>", 
-											refStr, fc, pSDAi->sAddr, pSDAi->Val, dabType);
-#ifdef DB_SQLITE3									
-								sqlite3_reset(stmt);
-								sqlite3_bind_text(stmt, 1, sclInfo->lIEDHead->iedName, strlen(sclInfo->lIEDHead->iedName), NULL);
-								sqlite3_bind_text(stmt, 2, scl_ld->inst, strlen(scl_ld->inst), NULL);
-								sqlite3_bind_text(stmt, 3, scl_ln->varName, strlen(scl_ln->varName), NULL);
-								sqlite3_bind_text(stmt, 4, fc, strlen(fc), NULL);
-								sqlite3_bind_text(stmt, 5, doiList->name, strlen(doiList->name), NULL);
-								sqlite3_bind_text(stmt, 6, pSDAi->name, strlen(pSDAi->name), NULL);
-								
-								sqlite3_bind_text(stmt, 7, refStr, strlen(refStr), NULL);
-								sqlite3_bind_text(stmt, 8, pSDAi->sAddr , strlen(pSDAi->sAddr), NULL);
-								if (pSDAi->Val != '\0'){
-									sqlite3_bind_text(stmt, 9, pSDAi->Val, strlen(pSDAi->Val), NULL);
-								}
-								if (dabType != NULL && strlen(dabType) > 0) {
-									sqlite3_bind_text(stmt, 10, dabType, strlen(dabType), NULL);
-								}
-								
-								sqlite3_step(stmt);  
-#endif									
-							}
-						}
-				
-					}	
-
-					for (pDai = doiList->daiHead; pDai != NULL; pDai = (SCL_DAI *)list_get_next(doiList->daiHead, pDai)) {
-
-						SCL_DA* daList;
-						if ((rec = sclGetDaListByDAName (sclInfo, doiType, pDai->name, &daList)) !=0){
-							SLOG_ERROR ("sclGetDaListByDAName err %d", rec);
-							continue;
-						}
-						ST_CHAR refStr[100 + 1] = {0};
-						snprintf (refStr, 100, "%s%s/%s$%s$%s$%s", sclInfo->lIEDHead->iedName, scl_ld->inst, scl_ln->varName, daList->fc, doiList->name, pDai->flattened);							
-						SLOG_DEBUG ("    <DAI ref=\"%s\" fc=\"%s\" sAddr=\"%s\" value=\"%s\" daType=\"%s\"/>", 
-									refStr, daList->fc, pDai->sAddr, pDai->Val, daList->bType);
-#ifdef DB_SQLITE3			
-						//"insert into iec_ied_data(iedname,LD,LN,FC,DOI,DAI,ref,sAddr,val,val_type,val_size,ref_type,ref_size) values (?,?,?,?,?,?,?,?,?,?,'0',0,-255)"						
-						sqlite3_reset(stmt);
-						sqlite3_bind_text(stmt, 1, sclInfo->lIEDHead->iedName, strlen(sclInfo->lIEDHead->iedName), NULL);
-						sqlite3_bind_text(stmt, 2, scl_ld->inst, strlen(scl_ld->inst), NULL);
-						sqlite3_bind_text(stmt, 3, scl_ln->varName, strlen(scl_ln->varName), NULL);
-						sqlite3_bind_text(stmt, 4, daList->fc, strlen(daList->fc), NULL);
-						sqlite3_bind_text(stmt, 5, doiList->name, strlen(doiList->name), NULL);
-						sqlite3_bind_text(stmt, 6, pDai->name, strlen(pDai->name), NULL);
-						sqlite3_bind_text(stmt, 7, refStr, strlen(refStr), NULL);
-
-						sqlite3_bind_text(stmt, 8, pDai->sAddr, strlen(pDai->sAddr), NULL);
-						if (pDai->Val != '\0'){
-							sqlite3_bind_text(stmt, 9, pDai->Val, strlen(pDai->Val), NULL);
-						}
-						if (daList->bType != NULL && strlen(daList->bType) > 0) {
-							sqlite3_bind_text(stmt, 10, daList->bType, strlen(daList->bType), NULL);
-						}
+				// if (strcasecmp(scl_ld->inst, "prot")) continue;
+				for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
+					SLOG_DEBUG("<LN VarName=\"%s\" desc=\"%s\" lnType=\"%s\" lnClass=\"%s\" prefix=\"%s\" inst=\"%s\">",
+					scl_ln->varName, scl_ln->desc, scl_ln->lnType, scl_ln->lnClass, scl_ln->prefix, scl_ln->inst);	
 					
-						sqlite3_step(stmt);  
+					SCL_DOI* doiList;
+					//for test
+					// if (strcasecmp(scl_ln->varName, "ITCTR2")) continue;
+					
+					for (doiList = scl_ln->doiHead; doiList != NULL; doiList = (SCL_DOI *)list_get_next(scl_ln->doiHead, doiList)) {
+						ST_CHAR* doiType = sclGetDOTypeByDoName(sclInfo, scl_ln->lnType, doiList->name);
+
+						SLOG_DEBUG("  <DOI name=\"%s\" desc=\"%s\" type=\"%s\">", doiList->name, doiList->desc, doiType);
+						SCL_SDI* pSdi;
+						SCL_DAI* pDai;
+						ST_INT rec = 0;
+						for (pSdi = doiList->sdiHead; pSdi != NULL; pSdi = (SCL_SDI *)list_get_next(doiList->sdiHead, pSdi)) {
+							// ST_CHAR* daTypeName = sclGetDaBySdiName(sclInfo, doType, pSdi->name);
+							if (list_get_sizeof(pSdi->sdaiHead) > 0) {
+								SCL_DAI* pSDAi;
+								for (pSDAi = pSdi->sdaiHead; pSDAi != NULL; pSDAi = (SCL_DAI *)list_get_next(pSdi->sdaiHead, pSDAi)) {
+									ST_CHAR* dabType;
+									ST_CHAR* fc;
+									if ((rec =  sclGetDaiTypeByDaiflatName(sclInfo, doiType, pSDAi->flattened, &dabType, &fc)) !=0){
+										SLOG_ERROR ("sclGetDaiTypeByDaiflatName err %d", rec);
+										continue;
+									}
+									ST_CHAR refStr[100 + 1] = {0};
+									snprintf (refStr, 100, "%s%s/%s$%s$%s$%s", scl_ied->iedName, scl_ld->inst, scl_ln->varName, fc, doiList->name, pSDAi->flattened);
+									SLOG_DEBUG ("    <DAI ref=\"%s\" fc=\"%s\" sAddr=\"%s\" value=\"%s\" daType=\"%s\"/>", 
+												refStr, fc, pSDAi->sAddr, pSDAi->Val, dabType);
+#ifdef DB_SQLITE3									
+									sqlite3_reset(stmt);
+									sqlite3_bind_text(stmt, 1, scl_ied->iedName, strlen(scl_ied->iedName), NULL);
+									sqlite3_bind_text(stmt, 2, scl_ld->inst, strlen(scl_ld->inst), NULL);
+									sqlite3_bind_text(stmt, 3, scl_ln->varName, strlen(scl_ln->varName), NULL);
+									sqlite3_bind_text(stmt, 4, fc, strlen(fc), NULL);
+									sqlite3_bind_text(stmt, 5, doiList->name, strlen(doiList->name), NULL);
+									sqlite3_bind_text(stmt, 6, pSDAi->name, strlen(pSDAi->name), NULL);
+									
+									sqlite3_bind_text(stmt, 7, refStr, strlen(refStr), NULL);
+									sqlite3_bind_text(stmt, 8, pSDAi->sAddr , strlen(pSDAi->sAddr), NULL);
+									if (pSDAi->Val != '\0'){
+										sqlite3_bind_text(stmt, 9, pSDAi->Val, strlen(pSDAi->Val), NULL);
+									}
+									if (dabType != NULL && strlen(dabType) > 0) {
+										sqlite3_bind_text(stmt, 10, dabType, strlen(dabType), NULL);
+									}
+									
+									sqlite3_step(stmt);  
+#endif									
+								}
+							}
+					
+						}	
+
+						for (pDai = doiList->daiHead; pDai != NULL; pDai = (SCL_DAI *)list_get_next(doiList->daiHead, pDai)) {
+
+							SCL_DA* daList;
+							if ((rec = sclGetDaListByDAName (sclInfo, doiType, pDai->name, &daList)) !=0){
+								SLOG_ERROR ("sclGetDaListByDAName err %d", rec);
+								continue;
+							}
+							ST_CHAR refStr[100 + 1] = {0};
+							snprintf (refStr, 100, "%s%s/%s$%s$%s$%s", scl_ied->iedName, scl_ld->inst, scl_ln->varName, daList->fc, doiList->name, pDai->flattened);							
+							SLOG_DEBUG ("    <DAI ref=\"%s\" fc=\"%s\" sAddr=\"%s\" value=\"%s\" daType=\"%s\"/>", 
+										refStr, daList->fc, pDai->sAddr, pDai->Val, daList->bType);
+#ifdef DB_SQLITE3			
+							//"insert into iec_ied_data(iedname,LD,LN,FC,DOI,DAI,ref,sAddr,val,val_type,val_size,ref_type,ref_size) values (?,?,?,?,?,?,?,?,?,?,'0',0,-255)"						
+							sqlite3_reset(stmt);
+							sqlite3_bind_text(stmt, 1, scl_ied->iedName, strlen(scl_ied->iedName), NULL);
+							sqlite3_bind_text(stmt, 2, scl_ld->inst, strlen(scl_ld->inst), NULL);
+							sqlite3_bind_text(stmt, 3, scl_ln->varName, strlen(scl_ln->varName), NULL);
+							sqlite3_bind_text(stmt, 4, daList->fc, strlen(daList->fc), NULL);
+							sqlite3_bind_text(stmt, 5, doiList->name, strlen(doiList->name), NULL);
+							sqlite3_bind_text(stmt, 6, pDai->name, strlen(pDai->name), NULL);
+							sqlite3_bind_text(stmt, 7, refStr, strlen(refStr), NULL);
+
+							sqlite3_bind_text(stmt, 8, pDai->sAddr, strlen(pDai->sAddr), NULL);
+							if (pDai->Val != '\0'){
+								sqlite3_bind_text(stmt, 9, pDai->Val, strlen(pDai->Val), NULL);
+							}
+							if (daList->bType != NULL && strlen(daList->bType) > 0) {
+								sqlite3_bind_text(stmt, 10, daList->bType, strlen(daList->bType), NULL);
+							}
+						
+							sqlite3_step(stmt);  
 #endif
-					}	
+						}	
 
-				} 				
-			}
-			
-		} //end of LDevice inst
-
+					} 				
+				}
+				
+			} //end of LDevice inst
+		}
 	}
+	
 #ifdef DB_SQLITE3		
 	sqlite3_finalize(stmt);  
 	if (SQLITE_OK != sqlite3_exec(db,"commit;",0,0,&zErrMsg))
@@ -567,7 +575,6 @@ void scdGetIedStructInfo(SCL_INFO* sclInfo, void* database) {
 	}	
 #endif	
 	SCL_IED* ied;
-	sqlite3_bind_text(stmt1, 7, sclInfo->Header.sclCrc, strlen(sclInfo->Header.sclCrc), NULL);
 	for(ied = sclInfo->lIEDHead; ied != NULL; ied = (SCL_IED*)list_get_next (sclInfo->lIEDHead, ied))
 	{
 		SLOG_DEBUG ("<IED name=\"%s\" type=\"%s\" desc=\"%s\" manufacturer=\"%s\" configVersion=\"%s\" iedCrc=\"%s\">", 
@@ -580,6 +587,7 @@ void scdGetIedStructInfo(SCL_INFO* sclInfo, void* database) {
 		if (ied->manufacturer) sqlite3_bind_text(stmt1, 4, ied->manufacturer, strlen(ied->manufacturer), NULL);
 		sqlite3_bind_text(stmt1, 5, ied->configVersion, strlen(ied->configVersion), NULL);
 		sqlite3_bind_text(stmt1, 6, ied->iedDeviceCrc, strlen(ied->iedDeviceCrc), NULL);
+		sqlite3_bind_text(stmt1, 7, sclInfo->Header.sclCrc, strlen(sclInfo->Header.sclCrc), NULL);
 		sqlite3_step(stmt1);
 #endif		
 	}
@@ -646,19 +654,20 @@ void scdGetCommuncationInfo(SCL_INFO* sclInfo, void* database) {
 	int subNetworkid = 1;
 	for(net = sclInfo->subnetHead; net!=NULL; net = (SCL_SUBNET*)list_get_next (sclInfo->subnetHead, net))
 	{
-
 		SLOG_DEBUG ("<SubNetwork name=\"%s\" type=\"%s\", desc=\"%s\">",net->name, net->type, net->desc == NULL ? "" : net->desc);
+		// printf ("net->capHead size %d\n", list_get_sizeof(net->capHead));
 		for ( cap= net->capHead; cap != NULL; cap = (SCL_CAP*)list_get_next(net->capHead, cap) )
 		{
 			SLOG_DEBUG ("  <ConnectedAP iedName=\"%s\" apName=\"%s\">", cap->iedName, cap->apName);
 			SCL_ADDRESS* addr;
 			if( list_get_sizeof(cap->addrHead) ) {
 				for (addr = cap->addrHead; addr != NULL; addr = (SCL_ADDRESS *)list_get_next(cap->addrHead, addr) ){
-					if (strlen(addr->IP) && strlen(addr->IPSUBNET)) {
+					SLOG_DEBUG("IPAddress: %s IPSUBNET:%s", addr->IP, addr->IPSUBNET);					
+					if (strlen(addr->IP)) {
 						SLOG_DEBUG ("	IP Address %s SubNet %s",addr->IP, addr->IPSUBNET);
 #ifdef DB_SQLITE3						
 						sqlite3_reset(stmt1);
-						sqlite3_bind_text(stmt1, 1, sclInfo->lIEDHead->iedName, strlen(sclInfo->lIEDHead->iedName), NULL);
+						sqlite3_bind_text(stmt1, 1, cap->iedName, strlen(cap->iedName), NULL);
 						sqlite3_bind_text(stmt1, 2, net->name, strlen(net->name), NULL);			
 						sqlite3_bind_text(stmt1, 3, cap->apName, strlen(cap->apName), NULL);						
 						sqlite3_bind_text(stmt1, 4, addr->IP, strlen(addr->IP), NULL);
@@ -671,7 +680,7 @@ void scdGetCommuncationInfo(SCL_INFO* sclInfo, void* database) {
 #ifdef DB_SQLITE3			
 			else{
 				sqlite3_reset(stmt1);
-				sqlite3_bind_text(stmt1, 1, sclInfo->lIEDHead->iedName, strlen(sclInfo->lIEDHead->iedName), NULL);
+				sqlite3_bind_text(stmt1, 1, cap->iedName, strlen(cap->iedName), NULL);
 				sqlite3_bind_text(stmt1, 2, net->name, strlen(net->name), NULL);			
 				sqlite3_bind_text(stmt1, 3, cap->apName, strlen(cap->apName), NULL);	
 				sqlite3_bind_text(stmt1, 4, "", 0, NULL);
@@ -743,8 +752,8 @@ ST_RET scdGetDataSetInfo(SCL_INFO* sclInfo, void* database) {
 	SCL_LD *scl_ld;
 	SCL_LN *scl_ln;
 
-	if (list_get_sizeof(sclInfo->accessPointHead) == 0){
-		SLOG_ERROR("Empty accessPoint");
+	if (list_get_sizeof(sclInfo->lIEDHead) == 0){
+		SLOG_ERROR("Empty IED");
 		return -2;
 	}
 	
@@ -766,57 +775,63 @@ ST_RET scdGetDataSetInfo(SCL_INFO* sclInfo, void* database) {
 		return -3;
 	}
 #endif	
-	for (scl_acpoint = sclInfo->accessPointHead; scl_acpoint != NULL; scl_acpoint = (SCL_ACCESSPOINT *)list_get_next(sclInfo->accessPointHead, scl_acpoint))
-	{
-		SLOG_DEBUG("<AccessPoint name=\"%s\">", scl_acpoint->name);
-		for (scl_ld = scl_acpoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(scl_acpoint->ldHead, scl_ld)){
-			SLOG_DEBUG ("<LDevice inst=\"%s\" desc=\"%s\">", scl_ld->inst, scl_ld->desc);
-			for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
-				if (strcasecmp(scl_ln->varName, "LLN0")) continue; 	//非LLN0跳过
 
-				SCL_DATASET* ds;
-				// SCL_DATASET* pDataSet;
-				SLOG_DEBUG ("<LN0 desc=\"%s\" lnType=\"%s\" lnClass=\"%s\" inst="">", scl_ln->desc, scl_ln->lnType, scl_ln->lnClass);
+	SCL_IED* scl_ied;
+	for (scl_ied = sclInfo->lIEDHead; scl_ied != NULL; scl_ied = (SCL_IED *)list_get_next(sclInfo->lIEDHead, scl_ied)) {
+		SLOG_DEBUG("==============================GetDataset IED NAME: %s==============================", scl_ied->iedName);
+		for (scl_acpoint = scl_ied->accessPointHead; scl_acpoint != NULL; scl_acpoint = (SCL_ACCESSPOINT *)list_get_next(scl_ied->accessPointHead, scl_acpoint))
+		{
+			SLOG_DEBUG("<AccessPoint name=\"%s\">", scl_acpoint->name);
+			for (scl_ld = scl_acpoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(scl_acpoint->ldHead, scl_ld)){
+				SLOG_DEBUG ("<LDevice inst=\"%s\" desc=\"%s\">", scl_ld->inst, scl_ld->desc);
+				for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
+					if (strcasecmp(scl_ln->varName, "LLN0")) continue; 	//非LLN0跳过
 
-				for(ds = scl_ln->datasetHead; ds != NULL; ds = (SCL_DATASET *)list_get_next(scl_ln->datasetHead, ds))
-				{
-					SCL_FCDA* fcda;
-					SLOG_DEBUG("<DataSet name=\"%s\" Desc=\"%s\">", ds->name, ds->desc); //
-					for(fcda = ds->fcdaHead; fcda != NULL; fcda = (SCL_FCDA*)list_get_next(ds->fcdaHead, fcda)) 
+					SCL_DATASET* ds;
+					// SCL_DATASET* pDataSet;
+					SLOG_DEBUG ("<LN0 desc=\"%s\" lnType=\"%s\" lnClass=\"%s\" inst="">", scl_ln->desc, scl_ln->lnType, scl_ln->lnClass);
+
+					for(ds = scl_ln->datasetHead; ds != NULL; ds = (SCL_DATASET *)list_get_next(scl_ln->datasetHead, ds))
 					{
-						SLOG_DEBUG ("<FCDA ldInst=\"%s\" prefix=\"%s\" lnClass=\"%s\" doName=\"%s\" lnInst=\"%s\" daName=\"%s\" fc=\"%s\" Ref=\"%s\" sAddr=\"%s\" desc=\"%s\"/>",
-								fcda->ldInst, 
-								fcda->prefix, 
-								fcda->lnClass, 
-								fcda->doName, 
-								fcda->lnInst,
-								fcda->daName,  
-								fcda->fc,  
-								fcda->domName, 
-								fcda->doRefsAddr, 
-								fcda->doRefDesc);
+						SCL_FCDA* fcda;
+						SLOG_DEBUG("<DataSet name=\"%s\" Desc=\"%s\">", ds->name, ds->desc); //
+						for(fcda = ds->fcdaHead; fcda != NULL; fcda = (SCL_FCDA*)list_get_next(ds->fcdaHead, fcda)) 
+						{
+							SLOG_DEBUG ("<FCDA ldInst=\"%s\" prefix=\"%s\" lnClass=\"%s\" doName=\"%s\" lnInst=\"%s\" daName=\"%s\" fc=\"%s\" Ref=\"%s\" sAddr=\"%s\" desc=\"%s\"/>",
+									fcda->ldInst, 
+									fcda->prefix, 
+									fcda->lnClass, 
+									fcda->doName, 
+									fcda->lnInst,
+									fcda->daName,  
+									fcda->fc,  
+									fcda->domName, 
+									fcda->doRefsAddr, 
+									fcda->doRefDesc);
 #ifdef DB_SQLITE3								
-						sqlite3_reset(stmt);
-						sqlite3_bind_text(stmt, 1, sclInfo->lIEDHead->iedName, strlen(sclInfo->lIEDHead->iedName), NULL);
-						sqlite3_bind_text(stmt, 2, fcda->ldInst, strlen(fcda->ldInst), NULL);
-						sqlite3_bind_text(stmt, 3, ds->name, strlen(ds->name), NULL);
-						sqlite3_bind_text(stmt, 4, fcda->prefix, strlen(fcda->prefix), NULL);
-						sqlite3_bind_text(stmt, 5, fcda->lnClass, strlen(fcda->lnClass), NULL);
-						sqlite3_bind_text(stmt, 6, fcda->lnInst, strlen(fcda->lnInst), NULL);
-						sqlite3_bind_text(stmt, 7, fcda->doName, strlen(fcda->doName), NULL);
-						sqlite3_bind_text(stmt, 8, fcda->daName, strlen(fcda->daName), NULL);
-						sqlite3_bind_text(stmt, 9, fcda->fc, strlen(fcda->fc), NULL);
-						sqlite3_bind_text(stmt, 10, fcda->domName, strlen(fcda->domName), NULL);
-						sqlite3_bind_text(stmt, 11, fcda->doRefDesc, strlen(fcda->doRefDesc), NULL);
-						sqlite3_bind_text(stmt, 12, fcda->doRefsAddr, strlen(fcda->doRefsAddr), NULL);
+							sqlite3_reset(stmt);
+							sqlite3_bind_text(stmt, 1, scl_ied->iedName, strlen(scl_ied->iedName), NULL);
+							sqlite3_bind_text(stmt, 2, fcda->ldInst, strlen(fcda->ldInst), NULL);
+							sqlite3_bind_text(stmt, 3, ds->name, strlen(ds->name), NULL);
+							sqlite3_bind_text(stmt, 4, fcda->prefix, strlen(fcda->prefix), NULL);
+							sqlite3_bind_text(stmt, 5, fcda->lnClass, strlen(fcda->lnClass), NULL);
+							sqlite3_bind_text(stmt, 6, fcda->lnInst, strlen(fcda->lnInst), NULL);
+							sqlite3_bind_text(stmt, 7, fcda->doName, strlen(fcda->doName), NULL);
+							sqlite3_bind_text(stmt, 8, fcda->daName, strlen(fcda->daName), NULL);
+							sqlite3_bind_text(stmt, 9, fcda->fc, strlen(fcda->fc), NULL);
+							sqlite3_bind_text(stmt, 10, fcda->domName, strlen(fcda->domName), NULL);
+							sqlite3_bind_text(stmt, 11, fcda->doRefDesc, strlen(fcda->doRefDesc), NULL);
+							sqlite3_bind_text(stmt, 12, fcda->doRefsAddr, strlen(fcda->doRefsAddr), NULL);
 
-						sqlite3_step(stmt); 
+							sqlite3_step(stmt); 
 #endif						
-					}
-				}				
+						}
+					}				
+				}
 			}
 		}
 	}
+	
 #ifdef DB_SQLITE3	
 	sqlite3_finalize(stmt); 
 	if (SQLITE_OK != sqlite3_exec(db,"commit;",0,0,&zErrMsg))
@@ -850,19 +865,16 @@ ST_RET scdGetDataSetInfo(SCL_INFO* sclInfo, void* database) {
     rptEna BOOLEAN NOT NULL", 
  */
 ST_RET sclGetUrcbElements(SCL_INFO* sclInfo, void* database) {
-
-	
 	if (!sclInfo) {
 		SLOG_ERROR("Empty sclInfo");
-		
 		return -1;		
 	}
 	SCL_ACCESSPOINT *scl_acpoint;
 	SCL_LD *scl_ld;
 	SCL_LN *scl_ln;
 
-	if (list_get_sizeof(sclInfo->accessPointHead) == 0){
-		SLOG_ERROR("Empty accessPoint");
+	if (list_get_sizeof(sclInfo->lIEDHead) == 0){
+		SLOG_ERROR("Empty IED");
 		
 		return -2;
 	}
@@ -886,40 +898,41 @@ ST_RET sclGetUrcbElements(SCL_INFO* sclInfo, void* database) {
 		return -3;
 	}
 #endif	
+	SCL_IED* scl_ied;
+	for (scl_ied = sclInfo->lIEDHead; scl_ied != NULL; scl_ied = (SCL_IED *)list_get_next(sclInfo->lIEDHead, scl_ied)) {
+		SLOG_DEBUG("==============================GetUrcb IED NAME: %s==============================", scl_ied->iedName);
+		for (scl_acpoint = scl_ied->accessPointHead; scl_acpoint != NULL; scl_acpoint = (SCL_ACCESSPOINT *)list_get_next(scl_ied->accessPointHead, scl_acpoint)) {
+			for (scl_ld = scl_acpoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(scl_acpoint->ldHead, scl_ld)){
+				for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
+					if (strcasecmp(scl_ln->varName, "LLN0")) continue; 	//非LLN0跳过
+					SCL_RCB* rcb;
+					//找到
+					for (rcb = scl_ln->rcbHead; rcb != NULL; rcb = (SCL_RCB *)list_get_next(scl_ln->rcbHead, rcb)) {
+						if (rcb->buffered == 1) continue;
+						if (rcb->maxClient < 1) continue;	//至少有一个RptMax
+						
+						ST_UINT8 i;
+						for (i = 1; i <= rcb->maxClient; i++){
+							ST_CHAR rcbName[MAX_IDENT_LEN+1] = {0};
+							sprintf(rcbName, "%s/LLN0$RP$%s%d", scl_ied->iedName,rcb->rptID,i);
+							SLOG_DEBUG("Urcb rptName=\"%s\" datSet=\"%s\" intgPd=\"%d\" rptID=\"%s\" confRev=\"%d\" buffered=\"%d\" bufTime=\"%d\" TrgOps=\"%d\" OptFlds=\"%d\">", 
+								rcbName,  rcb->datSet,  rcb->intgPd, rcb->rptID, rcb->confRev, rcb->buffered, rcb->bufTime, rcb->TrgOps[0], (rcb->OptFlds[1] << 8) + rcb->OptFlds[0]);
+	#ifdef DB_SQLITE3	
 
-	for (scl_acpoint = sclInfo->accessPointHead; scl_acpoint != NULL; scl_acpoint = (SCL_ACCESSPOINT *)list_get_next(sclInfo->accessPointHead, scl_acpoint)) {
-		
-		for (scl_ld = scl_acpoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(scl_acpoint->ldHead, scl_ld)){
-			
-			for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
-				if (strcasecmp(scl_ln->varName, "LLN0")) continue; 	//非LLN0跳过
-				SCL_RCB* rcb;
-				//找到
-				for (rcb = scl_ln->rcbHead; rcb != NULL; rcb = (SCL_RCB *)list_get_next(scl_ln->rcbHead, rcb)) {
-					if (rcb->buffered == 1) continue;
-					if (rcb->maxClient < 1) continue;	//至少有一个RptMax
-					
-					ST_UINT8 i;
-					for (i = 1; i <= rcb->maxClient; i++){
-						ST_CHAR rcbName[MAX_IDENT_LEN+1] = {0};
-						sprintf(rcbName, "%s%d", rcb->rptID,i);
-						SLOG_DEBUG("Urcb name=\"%s\" datSet=\"%s\" intgPd=\"%d\" rptID=\"%s\" confRev=\"%d\" buffered=\"%d\" bufTime=\"%d\" TrgOps=\"%d\" OptFlds=\"%d\">", 
-						rcbName,  rcb->datSet,  rcb->intgPd, rcb->rptID, rcb->confRev, rcb->buffered, rcb->bufTime, rcb->TrgOps[0], (rcb->OptFlds[1] << 8) + rcb->OptFlds[0]);
-#ifdef DB_SQLITE3	
+							sqlite3_reset(stmt);
+							sqlite3_bind_text(stmt, 1, scl_ied->iedName, strlen(scl_ied->iedName), NULL);
+							sqlite3_bind_text(stmt, 2, rcbName, strlen(rcbName), NULL);
+							sqlite3_bind_text(stmt, 3, rcb->rptID, strlen(rcb->rptID), NULL);
+							sqlite3_bind_text(stmt, 4, rcb->datSet, strlen(rcb->datSet), NULL);
+							sqlite3_bind_int(stmt, 5, rcb->confRev);
+							sqlite3_bind_int(stmt, 6, rcb->TrgOps[0]);
+							sqlite3_bind_int(stmt, 7, (rcb->OptFlds[1] << 8) + rcb->OptFlds[0]);
 
-						sqlite3_reset(stmt);
-						// sqlite3_bind_text(stmt, 1, sclInfo->lIEDHead->iedName, strlen(sclInfo->lIEDHead->iedName), NULL);
-						sqlite3_bind_text(stmt, 1, rcbName, strlen(rcbName), NULL);
-						sqlite3_bind_text(stmt, 2, rcb->rptID, strlen(rcb->rptID), NULL);
-						sqlite3_bind_text(stmt, 3, rcb->datSet, strlen(rcb->datSet), NULL);
-						sqlite3_bind_int(stmt, 4, rcb->confRev);
-						sqlite3_bind_int(stmt, 5, rcb->TrgOps[0]);
-						sqlite3_bind_int(stmt, 6, (rcb->OptFlds[1] << 8) + rcb->OptFlds[0]);
+							sqlite3_step(stmt); 
+	#endif							
+						}
 
-						sqlite3_step(stmt); 
-#endif							
 					}
-
 				}
 			}
 		}
@@ -968,11 +981,11 @@ ST_RET sclGetBrcbElements(SCL_INFO* sclInfo, void* database) {
 	SCL_LD *scl_ld;
 	SCL_LN *scl_ln;
 
-	if (list_get_sizeof(sclInfo->accessPointHead) == 0){
-		SLOG_ERROR("Empty accessPoint");
-		
+	if (list_get_sizeof(sclInfo->lIEDHead) == 0){
+		SLOG_ERROR("Empty IED");
 		return -2;
 	}
+	
 #ifdef DB_SQLITE3
 	sqlite3* db = (sqlite3*)database;
 	char* zErrMsg = 0;
@@ -991,41 +1004,43 @@ ST_RET sclGetBrcbElements(SCL_INFO* sclInfo, void* database) {
 		return -3;
 	}
 #endif	
+	SCL_IED* scl_ied;
+	for (scl_ied = sclInfo->lIEDHead; scl_ied != NULL; scl_ied = (SCL_IED *)list_get_next(sclInfo->lIEDHead, scl_ied)) {
+		SLOG_DEBUG("==============================GetBrcb IED NAME: %s==============================", scl_ied->iedName);
+		for (scl_acpoint = scl_ied->accessPointHead; scl_acpoint != NULL; scl_acpoint = (SCL_ACCESSPOINT *)list_get_next(scl_ied->accessPointHead, scl_acpoint)) {
+			for (scl_ld = scl_acpoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(scl_acpoint->ldHead, scl_ld)){
+				
+				for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
+					if (strcasecmp(scl_ln->varName, "LLN0")) continue; 	//非LLN0跳过
+					SCL_RCB* rcb;
+					//找到
+					for (rcb = scl_ln->rcbHead; rcb != NULL; rcb = (SCL_RCB *)list_get_next(scl_ln->rcbHead, rcb)) {
+						if (rcb->buffered == 0) continue;	//跳过urcb
+						if (rcb->maxClient < 1) continue;	//至少有一个RptMax
+						
+						ST_UINT8 i;
+						for (i = 1; i <= rcb->maxClient; i++){
+							ST_CHAR rcbName[MAX_IDENT_LEN+1] = {0};
+							sprintf(rcbName, "%s/LLN0$RP$%s%d", scl_ied->iedName,rcb->rptID,i);
+							SLOG_DEBUG ("BRCB name=\"%s\" datSet=\"%s\" intgPd=\"%d\" rptID=\"%s\" confRev=\"%d\" buffered=\"%d\" bufTime=\"%d\" TrgOps=\"%d\" OptFlds=\"%d\">", 
+							rcbName,  rcb->datSet,  rcb->intgPd, rcb->rptID, rcb->confRev, rcb->buffered, rcb->bufTime, rcb->TrgOps[0], (rcb->OptFlds[1] << 8) + rcb->OptFlds[0]);
+	#ifdef DB_SQLITE3	
 
-	for (scl_acpoint = sclInfo->accessPointHead; scl_acpoint != NULL; scl_acpoint = (SCL_ACCESSPOINT *)list_get_next(sclInfo->accessPointHead, scl_acpoint)) {
-		
-		for (scl_ld = scl_acpoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(scl_acpoint->ldHead, scl_ld)){
-			
-			for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
-				if (strcasecmp(scl_ln->varName, "LLN0")) continue; 	//非LLN0跳过
-				SCL_RCB* rcb;
-				//找到
-				for (rcb = scl_ln->rcbHead; rcb != NULL; rcb = (SCL_RCB *)list_get_next(scl_ln->rcbHead, rcb)) {
-					if (rcb->buffered == 0) continue;	//跳过urcb
-					if (rcb->maxClient < 1) continue;	//至少有一个RptMax
-					
-					ST_UINT8 i;
-					for (i = 1; i <= rcb->maxClient; i++){
-						ST_CHAR rcbName[MAX_IDENT_LEN+1] = {0};
-						sprintf(rcbName, "%s%d", rcb->rptID,i);
-						SLOG_DEBUG ("BRCB name=\"%s\" datSet=\"%s\" intgPd=\"%d\" rptID=\"%s\" confRev=\"%d\" buffered=\"%d\" bufTime=\"%d\" TrgOps=\"%d\" OptFlds=\"%d\">", 
-						rcbName,  rcb->datSet,  rcb->intgPd, rcb->rptID, rcb->confRev, rcb->buffered, rcb->bufTime, rcb->TrgOps[0], (rcb->OptFlds[1] << 8) + rcb->OptFlds[0]);
-#ifdef DB_SQLITE3	
+							sqlite3_reset(stmt);
+							// sqlite3_bind_text(stmt, 1, sclInfo->lIEDHead->iedName, strlen(sclInfo->lIEDHead->iedName), NULL);
+							sqlite3_bind_text(stmt, 1, rcbName, strlen(rcbName), NULL);
+							sqlite3_bind_text(stmt, 2, rcb->rptID, strlen(rcb->rptID), NULL);
+							sqlite3_bind_text(stmt, 3, rcb->datSet, strlen(rcb->datSet), NULL);
+							sqlite3_bind_int(stmt, 4, rcb->bufTime);
+							sqlite3_bind_int(stmt, 5, rcb->confRev);
+							sqlite3_bind_int(stmt, 6, rcb->TrgOps[0]);
+							sqlite3_bind_int(stmt, 7, (rcb->OptFlds[1] << 8) + rcb->OptFlds[0]);
 
-						sqlite3_reset(stmt);
-						// sqlite3_bind_text(stmt, 1, sclInfo->lIEDHead->iedName, strlen(sclInfo->lIEDHead->iedName), NULL);
-						sqlite3_bind_text(stmt, 1, rcbName, strlen(rcbName), NULL);
-						sqlite3_bind_text(stmt, 2, rcb->rptID, strlen(rcb->rptID), NULL);
-						sqlite3_bind_text(stmt, 3, rcb->datSet, strlen(rcb->datSet), NULL);
-						sqlite3_bind_int(stmt, 4, rcb->bufTime);
-						sqlite3_bind_int(stmt, 5, rcb->confRev);
-						sqlite3_bind_int(stmt, 6, rcb->TrgOps[0]);
-						sqlite3_bind_int(stmt, 7, (rcb->OptFlds[1] << 8) + rcb->OptFlds[0]);
+							sqlite3_step(stmt); 
+	#endif							
+						}
 
-						sqlite3_step(stmt); 
-#endif							
 					}
-
 				}
 			}
 		}
@@ -1053,22 +1068,21 @@ ST_RET sclGetBrcbElements(SCL_INFO* sclInfo, void* database) {
 /**
  * @Description: 获取LLN0 LogControl的配置信息
  */
-ST_RET sclGetLogControlBack(SCL_INFO* sclInfo, void* database) {
+ST_RET sclGetLogControlBlock(SCL_INFO* sclInfo, void* database) {
 	
 	if (!sclInfo) {
 		SLOG_ERROR("Empty sclInfo");
-		
 		return -1;		
 	}
 	SCL_ACCESSPOINT *scl_acpoint;
 	SCL_LD *scl_ld;
 	SCL_LN *scl_ln;
 
-	if (list_get_sizeof(sclInfo->accessPointHead) == 0){
-		SLOG_ERROR("Empty accessPoint");
-		
+	if (list_get_sizeof(sclInfo->lIEDHead) == 0){
+		SLOG_ERROR("Empty IED");
 		return -2;
 	}
+
 #ifdef DB_SQLITE3
 	sqlite3* db = (sqlite3*)database;
 	char* zErrMsg = 0;
@@ -1090,47 +1104,48 @@ ST_RET sclGetLogControlBack(SCL_INFO* sclInfo, void* database) {
 	ST_CHAR iedLDhead[96] = {0};
 	ST_CHAR lcbRef[128] = {0};
 	ST_CHAR lcbDataSet[128] = {0};
-		
-	for (scl_acpoint = sclInfo->accessPointHead; scl_acpoint != NULL; scl_acpoint = (SCL_ACCESSPOINT *)list_get_next(sclInfo->accessPointHead, scl_acpoint)) {
-		
-		for (scl_ld = scl_acpoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(scl_acpoint->ldHead, scl_ld)){
-			
-			memset(lcbRef, 0, sizeof(lcbRef));
-			memset(lcbDataSet, 0, sizeof(lcbDataSet));
-			memset(iedLDhead, 0, sizeof(ST_CHAR) * 96);
-			if (!sclInfo->lIEDHead || strlen(sclInfo->lIEDHead->iedName) < 1) {
-				strncpy_safe(iedLDhead, "UNKNOW_IED_NAME", 128);
-			} else {
-				strncpy_safe(iedLDhead, sclInfo->lIEDHead->iedName, 128);
-			}				
-			strcat(iedLDhead, scl_ld->inst);
-			strcat(lcbRef, iedLDhead);
-			strcat(lcbRef, "/");
-			strcat(lcbRef, scl_ld->inst);
-			
-			strcat(lcbDataSet, iedLDhead);
-			strcat(lcbDataSet, "/LLN0$");
-			for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
-				if (strcasecmp(scl_ln->varName, "LLN0")) continue; 	//非LLN0跳过
-				SCL_LCB* lcb;
-				for (lcb = scl_ln->lcbHead; lcb != NULL; lcb = (SCL_LCB *)list_get_next(scl_ln->lcbHead, lcb)) {
-					strcat(lcbDataSet, lcb->datSet);
-					SLOG_DEBUG ("   <LogControl name=\"%s\" desc=\"%s\" datSet=\"%s\" intgPd=\"%d\" TrgOps=\"0x%x\" logEna=\"%d\">", 
-						lcbRef, lcb->desc,  lcbDataSet, lcb->intgPd, lcb->TrgOps[0], lcb->logEna);
-					
-					// 	scl_rptCtlget(lcb->TrgOps,"dchg"), scl_rptCtlget(lcb->TrgOps,"qchg"), scl_rptCtlget(lcb->TrgOps,"dupd"), scl_rptCtlget(lcb->TrgOps,"period"));
-#ifdef DB_SQLITE3								
-					sqlite3_reset(stmt);
-					sqlite3_bind_text(stmt, 1, sclInfo->lIEDHead->iedName, strlen(sclInfo->lIEDHead->iedName), NULL);
-					sqlite3_bind_text(stmt, 2, lcbRef, strlen(lcbRef), NULL);
-					sqlite3_bind_text(stmt, 3, lcbDataSet, strlen(lcbDataSet), NULL);
-					sqlite3_bind_text(stmt, 4, lcb->desc, strlen(lcb->desc), NULL);
-					sqlite3_bind_int(stmt, 5, lcb->logEna);
-					sqlite3_bind_int(stmt, 6, lcb->intgPd);
-					sqlite3_bind_int(stmt, 7, lcb->TrgOps[0]);
+	SCL_IED* scl_ied;
+	for (scl_ied = sclInfo->lIEDHead; scl_ied != NULL; scl_ied = (SCL_IED *)list_get_next(sclInfo->lIEDHead, scl_ied)) {		
+		SLOG_DEBUG("==============================GetLogControlBlock IED NAME: %s==============================", scl_ied->iedName);
+		for (scl_acpoint = scl_ied->accessPointHead; scl_acpoint != NULL; scl_acpoint = (SCL_ACCESSPOINT *)list_get_next(scl_ied->accessPointHead, scl_acpoint)) {
+			for (scl_ld = scl_acpoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(scl_acpoint->ldHead, scl_ld)){
+				memset(lcbRef, 0, sizeof(lcbRef));
+				memset(lcbDataSet, 0, sizeof(lcbDataSet));
+				memset(iedLDhead, 0, sizeof(ST_CHAR) * 96);
+				if (strlen(scl_ied->iedName) < 1) {
+					strncpy_safe(iedLDhead, "UNKNOW_IED_NAME", 128);
+				} else {
+					strncpy_safe(iedLDhead, scl_ied->iedName, 128);
+				}				
+				strcat(iedLDhead, scl_ld->inst);
+				strcat(lcbRef, iedLDhead);
+				strcat(lcbRef, "/");
+				strcat(lcbRef, scl_ld->inst);
+				
+				strcat(lcbDataSet, iedLDhead);
+				strcat(lcbDataSet, "/LLN0$");
+				for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
+					if (strcasecmp(scl_ln->varName, "LLN0")) continue; 	//非LLN0跳过
+					SCL_LCB* lcb;
+					for (lcb = scl_ln->lcbHead; lcb != NULL; lcb = (SCL_LCB *)list_get_next(scl_ln->lcbHead, lcb)) {
+						strcat(lcbDataSet, lcb->datSet);
+						SLOG_DEBUG ("   <LogControl name=\"%s\" desc=\"%s\" datSet=\"%s\" intgPd=\"%d\" TrgOps=\"0x%x\" logEna=\"%d\">", 
+							lcbRef, lcb->desc,  lcbDataSet, lcb->intgPd, lcb->TrgOps[0], lcb->logEna);
+						
+						// 	scl_rptCtlget(lcb->TrgOps,"dchg"), scl_rptCtlget(lcb->TrgOps,"qchg"), scl_rptCtlget(lcb->TrgOps,"dupd"), scl_rptCtlget(lcb->TrgOps,"period"));
+	#ifdef DB_SQLITE3								
+						sqlite3_reset(stmt);
+						sqlite3_bind_text(stmt, 1, scl_ied->iedName, strlen(scl_ied->iedName), NULL);
+						sqlite3_bind_text(stmt, 2, lcbRef, strlen(lcbRef), NULL);
+						sqlite3_bind_text(stmt, 3, lcbDataSet, strlen(lcbDataSet), NULL);
+						sqlite3_bind_text(stmt, 4, lcb->desc, strlen(lcb->desc), NULL);
+						sqlite3_bind_int(stmt, 5, lcb->logEna);
+						sqlite3_bind_int(stmt, 6, lcb->intgPd);
+						sqlite3_bind_int(stmt, 7, lcb->TrgOps[0]);
 
-					sqlite3_step(stmt); 
-#endif							
+						sqlite3_step(stmt); 
+	#endif							
+					}
 				}
 			}
 		}

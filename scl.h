@@ -650,7 +650,7 @@ typedef enum {
 
 	/************************************************************************/
 	/*			Logical Device structure 			*/
-	/* "scl_ld_create" allocates this struct			*/
+	/* "scl_ld_add" allocates this struct			*/
 	/* and adds it to the linked list "ldHead" in SCL_INFO.		*/
 	typedef struct
 	{
@@ -664,6 +664,20 @@ typedef enum {
 		/* NOTE: AccessControl in LDevice is ignored	*/
 	} SCL_LD;			/* Logical Device (LDevice in SCL)*/
 
+	/* Data from "Subnetwork" element	*/
+	typedef struct scl_accesspoint
+	{
+		/* CRITICAL: First 2 parameters used to add this struct to linked	*/
+		/* lists using list_add_last, etc.					*/
+		DBL_LNK l;
+		ST_CHAR name[FIX_STR_LEN_3+1];		//S1 G1 M1
+		ST_CHAR *desc;		/* description (optional)*/
+		/* may be long so allocate if present*/
+		ST_CHAR router[FIX_STR_LEN_5+1];	//only choose True or false
+		ST_CHAR clock[FIX_STR_LEN_5+1];		//only choose True or false
+		/* Logical Device (MMS Domain) definitions (from AccessPoint section)	*/
+		SCL_LD *ldHead;		/* head of list of LDevice defs		*/
+	} SCL_ACCESSPOINT;
 
 	typedef struct
 	{
@@ -674,6 +688,7 @@ typedef enum {
 		ST_CHAR *iedType;
 		ST_CHAR configVersion[VERSION_LEN + 1];
 		ST_CHAR iedDeviceCrc [MAX_CRC32_LEN+1];
+		SCL_ACCESSPOINT *accessPointHead;
 	} SCL_IED;			/* IED*/
 
 	/************************************************************************/
@@ -800,31 +815,16 @@ typedef enum {
 		/* scl_enumtype_add_enumval adds to list*/
 	} SCL_ENUMTYPE;
 
-	/* Data from "Subnetwork" element	*/
-	typedef struct scl_accesspoint
-	{
-		/* CRITICAL: First 2 parameters used to add this struct to linked	*/
-		/* lists using list_add_last, etc.					*/
-		DBL_LNK l;
-		ST_CHAR name[FIX_STR_LEN_3+1];		//S1 G1 M1
-		ST_CHAR *desc;		/* description (optional)*/
-		/* may be long so allocate if present*/
-		ST_CHAR router[FIX_STR_LEN_5+1];	//only choose True or false
-		ST_CHAR clock[FIX_STR_LEN_5+1];		//only choose True or false
-		/* Logical Device (MMS Domain) definitions (from AccessPoint section)	*/
-		SCL_LD *ldHead;		/* head of list of LDevice defs		*/
-	} SCL_ACCESSPOINT;
-
 	/************************************************************************/
   	/* @Description:  SCL_LNTEMPLATE 直接存放每个LNTypeNode的类型,数据		 */
   	/************************************************************************/
-  	typedef struct scl_lnTypeTemplates
-	{
-		SCL_DO* doHead;	
-		SCL_DA* daHead;
-		SCL_BDA* badInfoHead[10];
-		SCL_ENUMVAL* enumvalHead;
-	}SCL_LNTEMPLATE;
+  	// typedef struct scl_lnTypeTemplates
+	// {
+	// 	SCL_DO* doHead;	
+	// 	SCL_DA* daHead;
+	// 	SCL_BDA* badInfoHead[10];
+	// 	SCL_ENUMVAL* enumvalHead;
+	// }SCL_LNTEMPLATE;
 
 	/************************************************************************/
 	/*			SCL_INFO					*/
@@ -841,7 +841,6 @@ typedef enum {
 		/* SubNetwork definitions from (from Communication section)		*/
 		SCL_SUBNET *subnetHead;	/* head of list of SubNetwork defs	*/
 
-		SCL_ACCESSPOINT *accessPointHead;
 		/* Logical Node Type definitions (from DataTypeTemplates section)	*/
 		SCL_LNTYPE *lnTypeHead;	/* head of list	of LNodeType defs	*/
 		SCL_DOTYPE *doTypeHead;	/* head of list of DOType defs		*/
@@ -953,7 +952,7 @@ typedef enum {
 	SCL_LN *scl_ln_add (
 		SCL_INFO *scl_info);
 
-	SCL_LD *scl_ld_create (
+	SCL_LD *scl_ld_add (
 		SCL_INFO *scl_info);
 
 	SCL_SUBNET *scl_subnet_create (

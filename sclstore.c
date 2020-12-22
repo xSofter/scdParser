@@ -27,7 +27,7 @@
 /*			scl_lcb_add					*/
 /*			scl_gcb_add					*/
 /*			scl_ln_add					*/
-/*			scl_ld_create					*/
+/*			scl_ld_add					*/
 /*			scl_info_destroy				*/
 /*									*/
 /* MODIFICATION LOG :							*/
@@ -256,7 +256,12 @@ SCL_FCDA *scl_fcda_add (
 						SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_FCDA *scl_fcda = NULL;	/* assume failure	*/
-	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	SCL_IED* ied = list_find_last((DBL_LNK *)scl_info->lIEDHead);
+	if (!ied) {
+		SLOG_ERROR ("Null IED");
+		return (scl_fcda);
+	}
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)ied->accessPointHead);
 	if (!ap){
 		SLOG_ERROR ("Null access_point");
 		return (scl_fcda);
@@ -300,8 +305,12 @@ SCL_FCDA *scl_fcda_add (
 /************************************************************************/
 SCL_DOI *scl_doi_add(SCL_INFO *scl_info) {
 	SCL_DOI *scl_doi = NULL;	/* assume failure	*/
-	
-	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	SCL_IED* ied = list_find_last((DBL_LNK *)scl_info->lIEDHead);
+	if (!ied){
+		SLOG_ERROR ("Null IED");
+		return (scl_doi);
+	}
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)ied->accessPointHead);
 	if (!ap){
 		SLOG_ERROR ("Null access_point");
 		return (scl_doi);
@@ -337,7 +346,12 @@ SCL_DOI *scl_doi_add(SCL_INFO *scl_info) {
 /************************************************************************/
 SCL_SDI *scl_sdi_add(SCL_INFO *scl_info) {
 	SCL_SDI *scl_sdi = NULL;	/* assume failure	*/
-	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	SCL_IED* ied = list_find_last((DBL_LNK *)scl_info->lIEDHead);
+	if (!ied){
+		SLOG_ERROR ("Null IED");
+		return (scl_sdi);
+	}	
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)ied->accessPointHead);
 	if (!ap){
 		SLOG_ERROR ("Null access_point");
 		return (scl_sdi);
@@ -384,7 +398,12 @@ SCL_DAI *scl_dai_add (
 					  SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_DAI *scl_dai = NULL;	/* assume failure	*/
-	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	SCL_IED* ied = list_find_last((DBL_LNK *)scl_info->lIEDHead);
+	if (!ied){
+		SLOG_ERROR ("Null IED");
+		return (scl_dai);
+	}	
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)ied->accessPointHead);
 	if (!ap){
 		SLOG_ERROR ("Null access_point");
 		return (scl_dai);
@@ -432,7 +451,12 @@ SCL_DAI *scl_dai_add (
 /************************************************************************/
 SCL_SDI *scl_sdi_sdi_add(SCL_INFO *scl_info) {
 	SCL_SDI *scl_sdi = NULL;	/* assume failure	*/
-	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	SCL_IED* ied = list_find_last((DBL_LNK *)scl_info->lIEDHead);
+	if (!ied){
+		SLOG_ERROR ("Null IED");
+		return (scl_sdi);
+	}		
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)ied->accessPointHead);
 	if (!ap){
 		SLOG_ERROR ("Null access_point");
 		return (scl_sdi);
@@ -488,7 +512,12 @@ SCL_SDI *scl_sdi_sdi_add(SCL_INFO *scl_info) {
 /************************************************************************/
 SCL_DAI *scl_sdi_dai_add(SCL_INFO *scl_info) {
 	SCL_DAI *scl_dai = NULL;	/* assume failure	*/
-	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	SCL_IED* ied = list_find_last((DBL_LNK *)scl_info->lIEDHead);
+	if (!ied){
+		SLOG_ERROR ("Null IED");
+		return (scl_dai);
+	}	
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)ied->accessPointHead);
 	if (!ap){
 		SLOG_ERROR ("Null access_point");
 		return (scl_dai);
@@ -545,7 +574,13 @@ SCL_DATASET *scl_dataset_add (
 							  /* TRUNCATED if longer than buffer	*/
 {
 	SCL_DATASET *scl_dataset = NULL;	/* assume failure	*/
-	SCL_ACCESSPOINT* lastAp = list_find_last((DBL_LNK *)(scl_info->accessPointHead));
+	SCL_IED* ied = list_find_last((DBL_LNK *)scl_info->lIEDHead);
+	if (!ied){
+		SLOG_ERROR ("Null IED");
+		return (scl_dataset);
+	}	
+
+	SCL_ACCESSPOINT* lastAp = list_find_last((DBL_LNK *)(ied->accessPointHead));
 	if (!lastAp) {
 		SLOG_DEBUG ("Null accpointhead");
 		return (scl_dataset);
@@ -577,7 +612,13 @@ SCL_RCB *scl_rcb_add (
 					  SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_RCB *scl_rcb = NULL;
-	SCL_ACCESSPOINT* lastAp = list_find_last((DBL_LNK *)(scl_info->accessPointHead));
+	SCL_IED* scl_ied = list_find_last((DBL_LNK *)(scl_info->lIEDHead));
+	if (!scl_ied) {
+		SLOG_DEBUG ("Null IED");
+		return (scl_rcb);
+	}
+
+	SCL_ACCESSPOINT* lastAp = list_find_last((DBL_LNK *)(scl_ied->accessPointHead));
 	if (!lastAp) {
 		SLOG_DEBUG ("Null accpointhead");
 		return (scl_rcb);
@@ -613,7 +654,12 @@ SCL_LCB *scl_lcb_add (
 					  SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_LCB *scl_lcb = NULL;
-	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	SCL_IED* scl_ied = list_find_last((DBL_LNK *)(scl_info->lIEDHead));
+	if (!scl_ied) {
+		SLOG_DEBUG ("Null IED");
+		return (scl_lcb);
+	}	
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_ied->accessPointHead);
 	if (!ap){
 		SLOG_ERROR ("Null access_point");
 		return (scl_lcb);
@@ -657,7 +703,12 @@ SCL_GCB *scl_gcb_add (
 					  SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_GCB *scl_gcb = NULL;	/* assume failure	*/
-	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	SCL_IED* scl_ied = list_find_last((DBL_LNK *)(scl_info->lIEDHead));
+	if (!scl_ied) {
+		SLOG_DEBUG ("Null IED");
+		return (scl_gcb);
+	}		
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_ied->accessPointHead);
 	if (!ap){
 		SLOG_ERROR ("Null access_point");
 		return (scl_gcb);
@@ -697,7 +748,12 @@ SCL_SGCB *scl_sgcb_add (
 						SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_SGCB *scl_sgcb = NULL;	/* assume failure	*/
-	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	SCL_IED* scl_ied = list_find_last((DBL_LNK *)(scl_info->lIEDHead));
+	if (!scl_ied) {
+		SLOG_DEBUG ("Null IED");
+		return (scl_sgcb);
+	}		
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_ied->accessPointHead);
 	if (!ap){
 		SLOG_ERROR ("Null access_point");
 		return (scl_sgcb);
@@ -742,7 +798,12 @@ SCL_SVCB *scl_svcb_add (
 						SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_SVCB *scl_svcb = NULL;	/* assume failure	*/
-	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	SCL_IED* scl_ied = list_find_last((DBL_LNK *)(scl_info->lIEDHead));
+	if (!scl_ied) {
+		SLOG_DEBUG ("Null IED");
+		return (scl_svcb);
+	}	
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_ied->accessPointHead);
 	if (!ap){
 		SLOG_ERROR ("Null access_point");
 		return (scl_svcb);
@@ -784,7 +845,12 @@ SCL_LN *scl_ln_add (
 	SCL_LN *scl_ln = NULL;	/* assume failure	*/
 
 	/* All higher level linked lists must be initialized.	*/
-	SCL_ACCESSPOINT* lastAp = list_find_last((DBL_LNK *)(scl_info->accessPointHead));
+	SCL_IED* scl_ied = list_find_last((DBL_LNK *)(scl_info->lIEDHead));
+	if (!scl_ied) {
+		SLOG_DEBUG ("Null IED");
+		return (scl_ln);
+	}	
+	SCL_ACCESSPOINT* lastAp = list_find_last((DBL_LNK *)(scl_ied->accessPointHead));
 	if (!lastAp) {
 		SLOG_DEBUG ("Null accpointhead");
 		return (scl_ln);
@@ -804,15 +870,20 @@ SCL_LN *scl_ln_add (
 }
 
 /************************************************************************/
-/*			scl_ld_create					*/
+/*			scl_ld_add					*/
 /* Allocates SCL_LD struct						*/
 /* and adds it to the linked list "ldHead" in SCL_INFO.			*/
 /************************************************************************/
-SCL_LD *scl_ld_create (
+SCL_LD *scl_ld_add (
 					   SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_LD *scl_ld = NULL;	/* assume failure	*/
-	SCL_ACCESSPOINT* lastAp = list_find_last((DBL_LNK *)(scl_info->accessPointHead));
+	SCL_IED* scl_ied = list_find_last((DBL_LNK *)(scl_info->lIEDHead));
+	if (!scl_ied) {
+		SLOG_DEBUG ("Null IED");
+		return (scl_ld);
+	}	
+	SCL_ACCESSPOINT* lastAp = list_find_last((DBL_LNK *)(scl_ied->accessPointHead));
 	if (!lastAp) {
 		SLOG_DEBUG ("Null accpointhead");
 		return (scl_ld);
@@ -1015,7 +1086,12 @@ SCL_ACCESSPOINT *scl_accesspoint_add (SCL_INFO *scl_info)
 		return (scl_acpoint);
 	}
 	/* Add to front of list.	*/
-	list_add_last (&scl_info->accessPointHead, scl_acpoint);
+	SCL_IED* ied = list_find_last((DBL_LNK *)scl_info->lIEDHead);
+	if (!ied) {
+		SLOG_ERROR ("Null IED");
+		return (scl_acpoint);
+	}
+	list_add_last (&ied->accessPointHead, scl_acpoint);
 
 	return (scl_acpoint);	
 }
@@ -1027,30 +1103,35 @@ ST_VOID scl_get_dataSet_sAddr (SCL_INFO *sclInfo) {
 	if (!sclInfo) {
 		return;
 	}
-	if (!sclInfo->accessPointHead || !sclInfo->accessPointHead->ldHead || !sclInfo->accessPointHead->ldHead->lnHead || !sclInfo->accessPointHead->ldHead->lnHead->datasetHead)
+	if (!sclInfo->lIEDHead)
 	{
+		SLOG_ERROR ("NULL IED HEAD");
 		return;
 	}
 
 	SCL_ACCESSPOINT* acPoint;
 	SCL_LN* scl_ln;
 	SCL_LD* scl_ld;
-	for (acPoint = sclInfo->accessPointHead; acPoint != NULL; acPoint = (SCL_ACCESSPOINT *)list_get_next(sclInfo->accessPointHead, acPoint)) {
-		for (scl_ld = acPoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(acPoint->ldHead, scl_ld)){
-			for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
-				SCL_DATASET* ds = NULL;
-				SCL_FCDA* fcda = NULL;
-				for(ds = scl_ln->datasetHead; ds != NULL; ds = (SCL_DATASET *)list_get_next(scl_ln->datasetHead, ds))
-				{
-					// SLOG_DEBUG("    <DataSet: name %s Desc %s>", ds->name, ds->desc); //
-					for(fcda = ds->fcdaHead; fcda != NULL; fcda = (SCL_FCDA*)list_get_next(ds->fcdaHead, fcda)) 
+	SCL_IED* ied;
+	for (ied = sclInfo->lIEDHead; ied != NULL; ied = (SCL_IED*)list_get_next(sclInfo->lIEDHead, ied)) {
+		for (acPoint = ied->accessPointHead; acPoint != NULL; acPoint = (SCL_ACCESSPOINT *)list_get_next(ied->accessPointHead, acPoint)) {
+			for (scl_ld = acPoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(acPoint->ldHead, scl_ld)){
+				for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
+					SCL_DATASET* ds = NULL;
+					SCL_FCDA* fcda = NULL;
+					for(ds = scl_ln->datasetHead; ds != NULL; ds = (SCL_DATASET *)list_get_next(scl_ln->datasetHead, ds))
 					{
-						sx_get_stVal_by_fcda(scl_ld, fcda);													
+						// SLOG_DEBUG("    <DataSet: name %s Desc %s>", ds->name, ds->desc); //
+						for(fcda = ds->fcdaHead; fcda != NULL; fcda = (SCL_FCDA*)list_get_next(ds->fcdaHead, fcda)) 
+						{
+							sx_get_stVal_by_fcda(scl_ld, fcda);													
+						}
 					}
 				}
 			}
 		}
 	}
+
 }
 	
 /************************************************************************/
@@ -1256,141 +1337,152 @@ ST_VOID scl_info_destroy (SCL_INFO *scl_info)
 		chk_free (scl_subnet);
 	}
 
-	while ((scl_acpoint = (SCL_ACCESSPOINT *) list_get_first (&scl_info->accessPointHead)) != NULL)
-	{
-		if (scl_acpoint->desc)
-			chk_free (scl_acpoint->desc);
-		
-		while ((scl_ld = (SCL_LD *) list_get_first (&scl_acpoint->ldHead)) != NULL)
-		{	
-			while ((scl_ln = (SCL_LN *) list_get_first (&scl_ld->lnHead)) != NULL)
+	while ((scl_ied = (SCL_IED *) list_get_first (&scl_info->lIEDHead)) != NULL) {
+		while ((scl_acpoint = (SCL_ACCESSPOINT *) list_get_first (&scl_ied->accessPointHead)) != NULL)
+		{
+			while ((scl_ld = (SCL_LD *) list_get_first (&scl_acpoint->ldHead)) != NULL)
 			{	
-				while ((scl_doi = (SCL_DOI *) list_get_first (&scl_ln->doiHead)) != NULL)
+				while ((scl_ln = (SCL_LN *) list_get_first (&scl_ld->lnHead)) != NULL)
 				{	
-					//DOI下一级DAI
-					while ((scl_dai = (SCL_DAI *) list_get_first (&scl_doi->daiHead)) != NULL)
+					while ((scl_doi = (SCL_DOI *) list_get_first (&scl_ln->doiHead)) != NULL)
 					{	
-						if (scl_dai->Val)
-							chk_free (scl_dai->Val);
+						//DOI下一级DAI
+						while ((scl_dai = (SCL_DAI *) list_get_first (&scl_doi->daiHead)) != NULL)
+						{	
+							if (scl_dai->Val)
+								chk_free (scl_dai->Val);
 
-						if (scl_dai->desc)
-							chk_free (scl_dai->desc);
+							if (scl_dai->desc)
+								chk_free (scl_dai->desc);
 
-						if (scl_dai->name)
-							chk_free (scl_dai->name);
+							if (scl_dai->name)
+								chk_free (scl_dai->name);
 
-						chk_free (scl_dai);
-					}
-					SCL_SDI* ssdi;
-					SCL_DAI* sdai;
-					//DOI下SDI,存在多级
-					while ((scl_sdi = (SCL_SDI *) list_get_first (&scl_doi->sdiHead)) != NULL)
-					{	
-						if (scl_sdi->desc)
-							chk_free (scl_sdi->desc);
+							chk_free (scl_dai);
+						}
+						SCL_SDI* ssdi;
+						SCL_DAI* sdai;
+						//DOI下SDI,存在多级
+						while ((scl_sdi = (SCL_SDI *) list_get_first (&scl_doi->sdiHead)) != NULL)
+						{	
+							if (scl_sdi->desc)
+								chk_free (scl_sdi->desc);
 
-						if (scl_sdi->name)
-							chk_free (scl_sdi->name);	
+							if (scl_sdi->name)
+								chk_free (scl_sdi->name);	
 
-						//SDI 下SDI
-						while ((ssdi = (SCL_SDI *) list_get_first (&scl_sdi->ssdiHead)) != NULL)
-						{
-							if (ssdi->desc)
-								chk_free (ssdi->desc);
+							//SDI 下SDI
+							while ((ssdi = (SCL_SDI *) list_get_first (&scl_sdi->ssdiHead)) != NULL)
+							{
+								if (ssdi->desc)
+									chk_free (ssdi->desc);
 
-							if (ssdi->name)
-								chk_free (ssdi->name);	
+								if (ssdi->name)
+									chk_free (ssdi->name);	
 
-							chk_free (ssdi);
+								chk_free (ssdi);
+							}
+
+							while ((sdai = (SCL_DAI *) list_get_first (&scl_sdi->sdaiHead)) != NULL)
+							{
+								if (sdai->desc)
+									chk_free (sdai->desc);
+
+								if (sdai->name)
+									chk_free (sdai->name);	
+
+								if (sdai->Val)
+									chk_free (sdai->Val);								
+									
+								chk_free (sdai);
+							}						
+										
+							chk_free (scl_sdi);
 						}
 
-						while ((sdai = (SCL_DAI *) list_get_first (&scl_sdi->sdaiHead)) != NULL)
-						{
-							if (sdai->desc)
-								chk_free (sdai->desc);
-
-							if (sdai->name)
-								chk_free (sdai->name);	
-
-							if (sdai->Val)
-								chk_free (sdai->Val);								
-								
-							chk_free (sdai);
-						}						
-									
-						chk_free (scl_sdi);
+						if (scl_doi->desc)
+							chk_free (scl_doi->desc);
+						chk_free (scl_doi);	
 					}
 
-					if (scl_doi->desc)
-						chk_free (scl_doi->desc);
-					chk_free (scl_doi);	
-				}
-
-				while ((scl_dataset = (SCL_DATASET *) list_get_first (&scl_ln->datasetHead)) != NULL)
-				{	
-					while ((scl_fcda = (SCL_FCDA *) list_get_first (&scl_dataset->fcdaHead)) != NULL)
+					while ((scl_dataset = (SCL_DATASET *) list_get_first (&scl_ln->datasetHead)) != NULL)
 					{	
-						chk_free (scl_fcda);
+						while ((scl_fcda = (SCL_FCDA *) list_get_first (&scl_dataset->fcdaHead)) != NULL)
+						{	
+							chk_free (scl_fcda);
+						}
+						if (scl_dataset->desc)
+							chk_free (scl_dataset->desc);
+						chk_free (scl_dataset);
 					}
-					if (scl_dataset->desc)
-						chk_free (scl_dataset->desc);
-					chk_free (scl_dataset);
-				}
 
-				while ((scl_rcb = (SCL_RCB *) list_get_first (&scl_ln->rcbHead)) != NULL)
-				{	
-					if (scl_rcb->desc)
-						chk_free (scl_rcb->desc);
-					chk_free (scl_rcb);
-				}
-
-				while ((scl_lcb = (SCL_LCB *) list_get_first (&scl_ln->lcbHead)) != NULL)
-				{	
-					if (scl_lcb->desc)
-						chk_free (scl_lcb->desc);
-					chk_free (scl_lcb);
-				}
-
-				while ((scl_gcb = (SCL_GCB *) list_get_first (&scl_ln->gcbHead)) != NULL)
-				{	
-					SCL_IEDNAME *iedNm;
-					while ((iedNm = (SCL_IEDNAME *) list_get_first (&scl_gcb->iedNHead)) != NULL)
+					while ((scl_rcb = (SCL_RCB *) list_get_first (&scl_ln->rcbHead)) != NULL)
 					{	
-						chk_free (iedNm);
+						if (scl_rcb->desc)
+							chk_free (scl_rcb->desc);
+						chk_free (scl_rcb);
 					}
-					if (scl_gcb->desc)
-						chk_free (scl_gcb->desc);
-					chk_free (scl_gcb);
-				}
-				while ((scl_svcb = (SCL_SVCB *) list_get_first (&scl_ln->svcbHead)) != NULL)
-				{	
-					SCL_IEDNAME *iedNm;
-					while ((iedNm = (SCL_IEDNAME *) list_get_first (&scl_svcb->iedNHead)) != NULL)
-					{	
-						chk_free (iedNm);
-					}
-					if (scl_svcb->desc)
-						chk_free (scl_svcb->desc);
-					chk_free (scl_svcb);
-				}
 
-				/* Only one SGCB allowed (no linked list)	*/
-				if (scl_ln->sgcb)
-				{	
-					if (scl_ln->sgcb->desc)
-						chk_free (scl_ln->sgcb->desc);
-					chk_free (scl_ln->sgcb);
+					while ((scl_lcb = (SCL_LCB *) list_get_first (&scl_ln->lcbHead)) != NULL)
+					{	
+						if (scl_lcb->desc)
+							chk_free (scl_lcb->desc);
+						chk_free (scl_lcb);
+					}
+
+					while ((scl_gcb = (SCL_GCB *) list_get_first (&scl_ln->gcbHead)) != NULL)
+					{	
+						SCL_IEDNAME *iedNm;
+						while ((iedNm = (SCL_IEDNAME *) list_get_first (&scl_gcb->iedNHead)) != NULL)
+						{	
+							chk_free (iedNm);
+						}
+						if (scl_gcb->desc)
+							chk_free (scl_gcb->desc);
+						chk_free (scl_gcb);
+					}
+					while ((scl_svcb = (SCL_SVCB *) list_get_first (&scl_ln->svcbHead)) != NULL)
+					{	
+						SCL_IEDNAME *iedNm;
+						while ((iedNm = (SCL_IEDNAME *) list_get_first (&scl_svcb->iedNHead)) != NULL)
+						{	
+							chk_free (iedNm);
+						}
+						if (scl_svcb->desc)
+							chk_free (scl_svcb->desc);
+						chk_free (scl_svcb);
+					}
+
+					/* Only one SGCB allowed (no linked list)	*/
+					if (scl_ln->sgcb)
+					{	
+						if (scl_ln->sgcb->desc)
+							chk_free (scl_ln->sgcb->desc);
+						chk_free (scl_ln->sgcb);
+					}
+					if (scl_ln->desc)
+						chk_free (scl_ln->desc);
+					chk_free (scl_ln);
 				}
-				if (scl_ln->desc)
-					chk_free (scl_ln->desc);
-				chk_free (scl_ln);
-			}
-			if (scl_ld->desc)
-				chk_free (scl_ld->desc);
-			chk_free (scl_ld);
-		}		
-		//do not forget free itself
-		chk_free (scl_acpoint);			
+				if (scl_ld->desc)
+					chk_free (scl_ld->desc);
+				chk_free (scl_ld);
+			}		
+			
+			if (scl_acpoint->desc)
+				chk_free (scl_acpoint->desc);
+			//do not forget free itself
+			chk_free (scl_acpoint);			
+		}
+		
+		if (scl_ied->desc)
+			chk_free (scl_ied->desc);
+		if (scl_ied->manufacturer)
+			chk_free (scl_ied->manufacturer);
+		if (scl_ied->iedType)
+			chk_free (scl_ied->iedType);
+
+		chk_free (scl_ied);
 	}
 
 	while ((scl_daType = (SCL_DATYPE *) list_get_first (&scl_info->daTypeHead)) != NULL)
@@ -1446,13 +1538,6 @@ ST_VOID scl_info_destroy (SCL_INFO *scl_info)
 		chk_free (scl_enum);
 	}
 	
-
-	while ((scl_ied = (SCL_IED *) list_get_first (&scl_info->lIEDHead)) != NULL)
-	{	
-		if (scl_ied->desc)
-			chk_free (scl_ied->desc);
-		chk_free (scl_ied);
-	}
 }
 
 

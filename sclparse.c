@@ -753,7 +753,7 @@ ST_RET scl_parse (const ST_CHAR *xmlFileName, const ST_CHAR *iedName,
 		//遍历完scl之后,再做其他工作
 		scl_get_dataSet_sAddr(sclInfo);
 	}
-	SLOG_DEBUG ("sx_parseExx_mt finished result %d iedName: %s", ret ,sclDecCtrl.sclInfo->lIEDHead->iedName);
+	SLOG_DEBUG ("sx_parseExx_mt finished result %d", ret);
 	/* NOTE: sx_parseEx_mt doesn't log error if file open fails, so log here*/
 	/* It may not log some other errors, so log any other error here too.	*/
 	if (ret == SX_FILE_NOT_FOUND)
@@ -841,7 +841,7 @@ static ST_VOID _Header_SFun (SX_DEC_CTRL *sxDecCtrl)
 	/* Handle optional "nameStructure".	*/
 	if (scl_get_attr_ptr (sxDecCtrl, "nameStructure", &nameStructure, SCL_ATTR_REQUIRED) == SD_SUCCESS)
 	{	
-		if (strcmp (nameStructure, "IEDName") != 0)
+		if (strcasecmp (nameStructure, "IEDName") != 0)
 		{
 			SLOG_ERROR ("Header attribute nameStructure='%s' not allowed. Assuming nameStructure='IEDName' (i.e. 'Product Naming')", nameStructure);
 		}
@@ -1336,7 +1336,7 @@ static ST_VOID _IED_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	{
 		//创建IED链表
 		SCL_IED *scl_lIED = (SCL_IED *) chk_calloc (1, sizeof (SCL_IED));
-		list_add_first (&sclDecCtrl->sclInfo->lIEDHead, scl_lIED);
+		list_add_last (&sclDecCtrl->sclInfo->lIEDHead, scl_lIED);
 
 		/* start required attributes */
 		// required = SD_TRUE;
@@ -1503,10 +1503,10 @@ static ST_VOID _LDevice_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	{
 		sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
 		//添加LDevice 链表
-		scl_ld = sclDecCtrl->scl_ld = scl_ld_create (sclDecCtrl->sclInfo);
+		scl_ld = sclDecCtrl->scl_ld = scl_ld_add (sclDecCtrl->sclInfo);
 		if (scl_ld == NULL)
 		{
-			scl_stop_parsing (sxDecCtrl, "scl_ld_create", SX_USER_ERROR);
+			scl_stop_parsing (sxDecCtrl, "scl_ld_add", SX_USER_ERROR);
 			return;
 		}
 
@@ -1725,18 +1725,24 @@ static ST_VOID _FCDA_SFun (SX_DEC_CTRL *sxDecCtrl)
 		/* Construct domain name from SCL info	*/
 		/* ASSUME nameStructure="IEDName" (domain name = IED name + LDevice inst)*/
 		//nameStructure="FuncName" is OBSOLETE.
+		SCL_IED* ied = list_find_last((DBL_LNK *)scl_info->lIEDHead);
+		if (!ied) {
+			SLOG_ERROR ("Null IED");
+			return ;
+		}
 		//TEMPLATECTRL/GOOUTGGIO2.Ind5.stVal.[ST] or 
 		//TEMPLATEPROT/WarnGGIO1.Alm19[ST]
 		if (strlen(scl_fcda->ldInst) + strlen(scl_fcda->prefix)+ strlen(scl_fcda->lnClass) + 
 		   strlen(scl_fcda->lnInst) + strlen(scl_fcda->doName) + strlen(scl_fcda->daName) <= MAX_IDENT_LEN)
 		{
-			if  (!scl_info->lIEDHead && !scl_info->lIEDHead->iedName) {
-				SLOG_ERROR ("There is no IEDHEad or IedName");
+			if  (!ied->iedName) {
+				SLOG_ERROR ("There is no IedName");
 				strcpy (scl_fcda->domName, scl_fcda->ldInst);
 			} 
 			else
 			{
-				strcpy (scl_fcda->domName, scl_info->lIEDHead->iedName);
+				strcpy (scl_fcda->domName, ied->iedName);
+				// strcpy (scl_fcda->domName, scl_info->lIEDHead->iedName);
 			}
 			
 			strcat (scl_fcda->domName, scl_fcda->ldInst);
@@ -1979,7 +1985,13 @@ static ST_VOID _IEDName_EFun (SX_DEC_CTRL *sxDecCtrl)
 	if (ret==SD_SUCCESS)
 	{
 		SCL_IEDNAME *iedNm=(SCL_IEDNAME *) chk_calloc (1, sizeof (SCL_IEDNAME));
-		SCL_LD *ld=sclDecCtrl->sclInfo->accessPointHead->ldHead;
+		
+		SCL_IED *ied = list_get_last (sclDecCtrl->sclInfo->lIEDHead);
+		if (!ied) {
+			chk_free(iedNm);
+			return;
+		}
+		SCL_LD *ld = ied->accessPointHead->ldHead;
 		if (ld && ld->lnHead && ld->lnHead->gcbHead)
 		{
 			list_add_first (&ld->lnHead->gcbHead->iedNHead, iedNm);
@@ -2014,15 +2026,20 @@ static ST_VOID _IEDName2_EFun (SX_DEC_CTRL *sxDecCtrl)
 	ret = sx_get_string_ptr (sxDecCtrl, &Val, &strLen);
 	if (ret==SD_SUCCESS)
 	{
-		SCL_IEDNAME *iedNm=(SCL_IEDNAME *) chk_calloc (1, sizeof (SCL_IEDNAME));
-		SCL_LD *ld=sclDecCtrl->sclInfo->accessPointHead->ldHead;
+		SCL_IED *ied = sclDecCtrl->sclInfo->lIEDHead;
+		if (!ied) {
+			return;
+		}
+		
+		SCL_LD *ld = ied->accessPointHead->ldHead;
+		SCL_IEDNAME *iedNm = NULL;
 		if (ld && ld->lnHead && ld->lnHead->svcbHead)
 		{
+			iedNm = (SCL_IEDNAME *) chk_calloc (1, sizeof (SCL_IEDNAME));
 			list_add_first (&ld->lnHead->svcbHead->iedNHead, iedNm);
 		}
 		else
 		{
-			chk_free(iedNm);
 			return;
 		}
 
@@ -2262,7 +2279,7 @@ static ST_VOID _DOI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	ST_RET ret;
 
 	sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
-	SCL_ACCESSPOINT *apHead = sclDecCtrl->sclInfo->accessPointHead;
+	SCL_ACCESSPOINT *apHead = sclDecCtrl->sclInfo->lIEDHead->accessPointHead;
 	if (apHead == NULL)
 	{
 		scl_stop_parsing (sxDecCtrl, "_DOI_SEFun", SX_INTERNAL_NULL_POINTER);

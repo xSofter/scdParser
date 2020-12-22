@@ -1,35 +1,33 @@
 /*
  * @Date: 2020-12-07 14:26
- * @LastEditTime: 2020-12-22 14:13
+ * @LastEditTime: 2020-12-22 19:22
  * @LastEditors: tangkai3
  * @Description: 
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-// #include <QDebug>
-// #include <QDateTime>
 #include "sclPub.h"
 #include "storage.h"
 #include "str_util.h"
 
-// #define DEBUG_PRINT
-
-
 int main(int argc, char* argv[])
 {
-	const char *xmlFileName = "Template_3620.icd";// "Template_3620.icd"
-	// const char *iedName = "C5011";
-	// const char *accessPointName = "S1";
-	// char* xmlFileName = "Template_3620.icd";
+	if(!argv[1] || argc < 2) {
+		printf("Eroor: no input file.\nUsage: sclParse sample.icd, sample.cid or sample.scd...\n");
+		exit(-1);
+	}
+
+	const char *xmlFileName = argv[1];
+
 	int rc;
-	argc = argc;
-	argv = argv;
 
 	SCL_INFO sclInfo;
-	
+#ifndef DB_SQLITE3	
+	void* db = NULL;
+#endif
 	memset(&sclInfo, 0, sizeof(SCL_INFO));
-	// memset(&userInfo, 0, sizeof(SCL_USER));
+
 	struct timeval start, end;
 	gettimeofday(&start, NULL);	
 	
@@ -60,10 +58,9 @@ int main(int argc, char* argv[])
 	sclGetDoiNameValue(&sclInfo, db);
 	sclGetUrcbElements(&sclInfo, db);
 	sclGetBrcbElements(&sclInfo, db);
-	sclGetLogControlBack(&sclInfo, db);
+	sclGetLogControlBlock(&sclInfo, db);
 
 	release_scd_file(&sclInfo);
-	// slog_end();
 
 #ifdef DB_SQLITE3	
 	sqlite3_close(db);

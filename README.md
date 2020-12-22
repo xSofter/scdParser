@@ -55,4 +55,5 @@ ICD/CID xml file parse for IEC61850 protocol
 2 优化用户信息展示对内存的占用  
 3 通信信息表支持GSE SMV的APPID VLAN的查看  
 4 支持查看scl文件的IED信息,crc和全站CRC信息  
-5 API的异常流程增加日志和指针保护处理
+5 API的异常流程增加日志和指针保护处理  
+6 支持解析多个IED的功能  

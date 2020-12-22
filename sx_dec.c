@@ -39,7 +39,7 @@ ST_ULONG g_rowIndex;
 /* __FILE__ strings.							*/
 
 #ifdef DEBUG_SISCO
-SD_CONST static ST_CHAR *SD_CONST thisFileName = __FILE__;
+static SD_CONST ST_CHAR* thisFileName = __FILE__;
 #endif
 
 #if defined(USE_EXPAT)
@@ -2586,7 +2586,6 @@ ST_VOID sx_get_stVal_by_fcda(SCL_LD* scl_ld, SCL_FCDA* fcda) {
 	}
 	
 	SCL_LN* scl_ln = NULL;
-	SCL_DATASET* ds = NULL;
 	// const ST_CHAR fcType[] = {"ST", "SP", "MX", "SG"};
 	ST_CHAR sdiName[MAX_IDENT_LEN + 1];
 	ST_CHAR doiName[MAX_IDENT_LEN + 1];

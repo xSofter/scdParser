@@ -1,6 +1,6 @@
 /*
  * @Date: 2020-12-07 09:27
- * @LastEditTime: 2020-12-22 14:33
+ * @LastEditTime: 2020-12-22 17:29
  * @LastEditors: tangkai3
  * @Description: 
  */
@@ -18,7 +18,7 @@ extern "C" {
 #include "storage.h"
 #include <sys/time.h>
 
-#define DB_SQLITE3
+#undef DB_SQLITE3
 
 int load_scd_file(const char* fileName, SCL_INFO* sclInfo);
 void release_scd_file(SCL_INFO* sclInfo);
@@ -32,7 +32,7 @@ int sclGetBdaByDaType(SCL_INFO* sclInfo, const char* DaType, SCL_BDA** pBdaHead)
 int sclGetEnumValByDaType(SCL_INFO* sclInfo, const char* DaType, SCL_ENUMVAL** enumvalHead);
 int sclGetUrcbElements(SCL_INFO* sclInfo, void* database);
 int sclGetBrcbElements(SCL_INFO* sclInfo, void* database);
-int sclGetLogControlBack(SCL_INFO* sclInfo, void* database);
+int sclGetLogControlBlock(SCL_INFO* sclInfo, void* database);
 
 #ifdef __cplusplus
 }
