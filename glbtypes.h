@@ -86,7 +86,7 @@ extern "C" {
 /*        this define may be replaced with the following:		*/
 /* #define SD_CONST const						*/
 #define SD_CONST  const
-
+#define OX_LINUX
 /************************************************************************/
 /************************************************************************/
 /************************************************************************/
@@ -550,7 +550,7 @@ extern "C" {
 /* LINUX SYSTEM								*/
 /* OR LYNXOS SYSTEM (same types)					*/
 /************************************************************************/
-#if defined(linux) || defined(__LYNX)
+#if defined(linux) || defined(__LYNX) || defined(OX_LINUX)
 
 /* NOTE: this may also work for setting SD_BYTE_ORDER on other		*/
 /*       platforms that use the GNU C Library				*/

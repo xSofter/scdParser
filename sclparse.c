@@ -89,8 +89,10 @@ typedef struct scl_dec_ctrl
 	ST_BOOLEAN accessPointMatched;
 	SCL_ACCESSPOINT *scl_apInfo;
 	SCL_INFO *sclInfo;	/* save scl info for user*/
+	SCL_CAP* scl_cap;	//申请cap的访问指针,该指针指向新申请的地址
 	SCL_GSE *scl_gse;	/* Used for "GSE" in "Communication" section	*/
 	SCL_SMV *scl_smv;	/* Used for "SMV" in "Communication" section	*/
+	SCL_PORT* scl_ports;	//用于访问申请的地址
 	SCL_ADDRESS *scl_addr;	/* 站控层地址*/
 	SCL_LD *scl_ld;	/* Used for "LDevice"				*/
 	SCL_LN *scl_ln;	/* Used for "LN" (Logical Node)			*/
@@ -325,9 +327,9 @@ SX_ELEMENT AddressElements[] =
 
 SX_ELEMENT GSEElements[] = 
 {
-	{"Address",      		SX_ELF_CSTARTEND|SX_ELF_OPT, _GSE_Address_SEFun, NULL, 0},
-	{"MinTime",      		SX_ELF_CEND|SX_ELF_OPT, 	 _GSE_MinTime_SEFun, NULL, 0},
-	{"MaxTime",      		SX_ELF_CEND|SX_ELF_OPT, 	 _GSE_MaxTime_SEFun, NULL, 0}
+	{"Address",      		SX_ELF_CSTARTEND|SX_ELF_OPT, 	_GSE_Address_SEFun, NULL, 0},
+	{"MinTime",      		SX_ELF_CEND|SX_ELF_OPT, 		_GSE_MinTime_SEFun, NULL, 0},
+	{"MaxTime",      		SX_ELF_CEND|SX_ELF_OPT, 	 	_GSE_MaxTime_SEFun, NULL, 0}
 };
 
 SX_ELEMENT GSEAddressElements[] = 
@@ -1139,6 +1141,13 @@ static ST_VOID _S1_ConnPortFun (SX_DEC_CTRL *sxDecCtrl)
 			return;
 		}
 
+		SLOG_DEBUG("typeStr %s", typeStr);
+		sclDecCtrl->scl_ports = scl_port_add(sclDecCtrl->sclInfo);
+		if ( NULL ==  sclDecCtrl->scl_ports)
+		{
+			scl_stop_parsing (sxDecCtrl, "scl_port", SX_USER_ERROR);
+			return;
+		}
 		//寻找port
 		sx_push (sxDecCtrl, sizeof(ConnectionElements)/sizeof(SX_ELEMENT), 
 			ConnectionElements, SD_FALSE);
@@ -1259,51 +1268,50 @@ static ST_VOID _Connection_P_Port_SEFun (SX_DEC_CTRL *sxDecCtrl)
 	ST_BOOLEAN required = SD_FALSE;
 	ST_CHAR *strOut;
 	ST_INT strLen;
-	SCL_PORT *scl_port;
+	SCL_PORT *scl_port = sclDecCtrl->scl_ports;
 
+	if (!scl_port) {
+		SLOG_ERROR ("Null scl_port address");
+		return;
+	}
 	if (sxDecCtrl->reason == SX_ELEMENT_END)
 	{
-		ret = scl_get_attr_ptr (sxDecCtrl, "type", &str, required);
-		if (ret != SD_SUCCESS)
+		if (scl_get_attr_ptr(sxDecCtrl, "type", &str, required) != SD_SUCCESS)
 		{
 			return;
-		}		
+		}	
+	
 		if (strcasecmp(str,"Port") == 0)
 		{
-			
-			scl_port = scl_port_add(sclDecCtrl->sclInfo);
-			if (scl_port == NULL)
-			{
-				scl_stop_parsing (sxDecCtrl, "scl_port", SX_USER_ERROR);
-				return;
-			}
 			/* Get required attributes	*/		
 			ret = sx_get_string_ptr (sxDecCtrl, &strOut, &strLen);	
 			if (ret == SD_SUCCESS) {
-				strncpy_safe (scl_port->portCfg, strOut, MAX_VALKIND_LEN);
-				SLOG_DEBUG ("GSE ports :%s", scl_port->portCfg);
+				strncpy_safe (scl_port->portValue, strOut, MAX_IDENT_LEN);
+				// SLOG_DEBUG ("GSE ports :%s", scl_port->portValue);
 			}
 		}	
 		else if (strcasecmp(str,"Plug") == 0)
 		{
 			ret = sx_get_string_ptr (sxDecCtrl, &strOut, &strLen);
-			// if (ret == SD_SUCCESS)
-			// 	SLOG_DEBUG ("Plug: %s", strOut);
+			if (ret == SD_SUCCESS) {
+				strncpy_safe (scl_port->portPlug, strOut, MAX_IDENT_LEN);
+			}
 
 		}
 		else if (strcasecmp(str,"Type") == 0)
 		{
 			ret = sx_get_string_ptr (sxDecCtrl, &strOut, &strLen);
-			// if (ret == SD_SUCCESS)			
-			// 	SLOG_DEBUG ("Type: %s", strOut);
+			if (ret == SD_SUCCESS) {
+				strncpy_safe (scl_port->portType, strOut, MAX_IDENT_LEN);
+			}
 
 		}
 		else if (strcasecmp(str,"Cable") == 0)
 		{
 			ret = sx_get_string_ptr (sxDecCtrl, &strOut, &strLen);
-			// if (ret == SD_SUCCESS)			
-			// 	SLOG_DEBUG ("Cable: %s", strOut);
-
+			if (ret == SD_SUCCESS) {
+				strncpy_safe (scl_port->portCable, strOut, MAX_IDENT_LEN);
+			}
 		}		
 	}
 }

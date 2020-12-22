@@ -1,6 +1,6 @@
 /*
  * @Date: 2020-12-15 11:18
- * @LastEditTime: 2020-12-16 10:10
+ * @LastEditTime: 2020-12-22 14:11
  * @LastEditors: tangkai3
  * @Description: 
  */
@@ -9,16 +9,20 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define SQLITE_3
 
-#ifdef SQLITE_3
 #include <sqlite3.h>
-#endif
+
 enum table_id
 {
-    IEC_IED_STRUCT = 0,
-	IEC_IED_COMMU,
+	IEC_IED_STRUCT = 0,
+    IEC_IED_DATA,
+	IEC_IED_COMM_PHYCONN, 
+	IEC_IED_COMM_GSE,
+	IEC_IED_COMM,
 	IEC_IED_DATASET,
+	IEC_IED_LCB,
+	IEC_IED_URCB,
+	IEC_IED_BRCB,
 
 	IEC_IED_STRUCT_SCD,
 	IEC_IED_COMMU_SCD,

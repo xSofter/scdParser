@@ -40,6 +40,7 @@
 #include "scl.h"
 #include "str_util.h"
 #include "mem_chk.h"
+#include "gen_list.h"
 #include "slog.h"
 
 #ifdef DEBUG_SISCO
@@ -255,7 +256,16 @@ SCL_FCDA *scl_fcda_add (
 						SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_FCDA *scl_fcda = NULL;	/* assume failure	*/
-	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	if (!ap){
+		SLOG_ERROR ("Null access_point");
+		return (scl_fcda);
+	} 
+	SCL_LD *ldHead = list_find_last((DBL_LNK *)ap->ldHead);
+	if (!ldHead) {
+		SLOG_ERROR ("NULL ldHead");
+		return (scl_fcda);
+	}
 	/* All higher level linked lists must be initialized.	*/
 	if (ldHead
 		&& ldHead->lnHead
@@ -264,7 +274,7 @@ SCL_FCDA *scl_fcda_add (
 		/* Add FCDA to front of FCDA List.	*/
 		//modify by tangkai 每个fcda节点,由新地址作为头结点
 		//FCDA由上一级Dataset创建,所以头结点由Dataset管理
-		SCL_DATASET *dsLast = list_find_last(ldHead->lnHead->datasetHead);
+		SCL_DATASET *dsLast = list_find_last((DBL_LNK *)(ldHead->lnHead->datasetHead));
 		if (NULL != dsLast) {
 			scl_fcda = (SCL_FCDA *) chk_calloc (1, sizeof (SCL_FCDA));
 			list_add_last (&dsLast->fcdaHead, scl_fcda);
@@ -290,10 +300,20 @@ SCL_FCDA *scl_fcda_add (
 /************************************************************************/
 SCL_DOI *scl_doi_add(SCL_INFO *scl_info) {
 	SCL_DOI *scl_doi = NULL;	/* assume failure	*/
-	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
+	
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	if (!ap){
+		SLOG_ERROR ("Null access_point");
+		return (scl_doi);
+	} 
+	SCL_LD *lastLd = list_find_last((DBL_LNK *)ap->ldHead);
+	if (!lastLd) {
+		SLOG_ERROR ("NULL ldHead");
+		return (scl_doi);
+	}
 	//确保头指针存在
-	if (ldHead && ldHead->lnHead) {
-		SCL_LN *curLn = list_find_last(ldHead->lnHead);
+	if (lastLd && lastLd->lnHead) {
+		SCL_LN *curLn = list_find_last((DBL_LNK *)(lastLd->lnHead));
 		if ( curLn != NULL ) {
 			/* Add DOI to front of LN List.	*/
 			/* DOI 的头结点指向本级LN*/
@@ -317,19 +337,27 @@ SCL_DOI *scl_doi_add(SCL_INFO *scl_info) {
 /************************************************************************/
 SCL_SDI *scl_sdi_add(SCL_INFO *scl_info) {
 	SCL_SDI *scl_sdi = NULL;	/* assume failure	*/
-	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
-	SCL_LN *lnHead = ldHead->lnHead;
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	if (!ap){
+		SLOG_ERROR ("Null access_point");
+		return (scl_sdi);
+	} 
+	SCL_LD *lastLd = list_find_last((DBL_LNK *)ap->ldHead);
+	if (!lastLd) {
+		SLOG_ERROR ("NULL ldHead");
+		return (scl_sdi);
+	}
 
 	//确保头指针存在
-	if (ldHead && lnHead) {
+	if (lastLd && lastLd->lnHead) {
 		//find current ln, return if null found
-		SCL_LN *curLn = list_find_last(ldHead->lnHead);
+		SCL_LN *curLn = list_find_last((DBL_LNK *)(lastLd->lnHead));
 		if (!curLn){
 			SLOG_ERROR ("Cannot find LN from LD");
 			return (scl_sdi);
 		} 
 		//find current doi, return if null found
-		SCL_DOI *curDoi = list_find_last(curLn->doiHead);
+		SCL_DOI *curDoi = list_find_last((DBL_LNK *)(curLn->doiHead));
 		if (!curDoi) {
 			SLOG_ERROR ("Cannot find DOI from LN");
 			return (scl_sdi);
@@ -356,18 +384,28 @@ SCL_DAI *scl_dai_add (
 					  SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_DAI *scl_dai = NULL;	/* assume failure	*/
-	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	if (!ap){
+		SLOG_ERROR ("Null access_point");
+		return (scl_dai);
+	} 
+	SCL_LD *lastLd = list_find_last((DBL_LNK *)ap->ldHead);
+	if (!lastLd) {
+		SLOG_ERROR ("NULL ldHead");
+		return (scl_dai);
+	}	
+
 	/* All higher level linked lists must be initialized.	*/
-	if (ldHead && ldHead->lnHead)
+	if (lastLd && lastLd->lnHead)
 	{
 		//find current ln, return if null found
-		SCL_LN *curLn = list_find_last(ldHead->lnHead);
+		SCL_LN *curLn = list_find_last((DBL_LNK *)(lastLd->lnHead));
 		if (!curLn){
 			SLOG_ERROR ("Cannot find LN from LD");
 			return (scl_dai);
 		} 
 		//find current doi, return if null found
-		SCL_DOI *curDoi = list_find_last(curLn->doiHead);
+		SCL_DOI *curDoi = list_find_last((DBL_LNK *)(curLn->doiHead));
 		if (!curDoi) {
 			SLOG_ERROR ("Cannot find DOI from LN");
 			return (scl_dai);
@@ -376,7 +414,7 @@ SCL_DAI *scl_dai_add (
 		//分两种情况,DAI在SDI下级,DAI在DOI下级
 		
 		/* DAI 的头结点指向本级LN*/
-		// SLOG_DEBUG("SCL_DAI_ADD last DOI address 0x%p, doiname: %s, ln: %s, ld: %s", curDoi, curDoi->name, curLn->desc, ldHead->desc);
+		// SLOG_DEBUG("SCL_DAI_ADD last DOI address 0x%p, doiname: %s, ln: %s, ld: %s", curDoi, curDoi->name, curLn->desc, lastLd->desc);
 		scl_dai = (SCL_DAI *) chk_calloc (1, sizeof (SCL_DAI));
 		/* Add DAI to front of DOI List.	*/
 		list_add_last (&curDoi->daiHead, scl_dai);
@@ -394,25 +432,35 @@ SCL_DAI *scl_dai_add (
 /************************************************************************/
 SCL_SDI *scl_sdi_sdi_add(SCL_INFO *scl_info) {
 	SCL_SDI *scl_sdi = NULL;	/* assume failure	*/
-	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	if (!ap){
+		SLOG_ERROR ("Null access_point");
+		return (scl_sdi);
+	} 
+	SCL_LD *lastLd = list_find_last((DBL_LNK *)ap->ldHead);
+	if (!lastLd) {
+		SLOG_ERROR ("NULL ldHead");
+		return (scl_sdi);
+	}		
+	// SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
 	/* All higher level linked lists must be initialized.	*/
-	if (ldHead && ldHead->lnHead)
+	if (lastLd && lastLd->lnHead)
 	{
 		//find current ln, return if null found
-		SCL_LN *curLn = list_find_last(ldHead->lnHead);
+		SCL_LN *curLn = list_find_last((DBL_LNK *)(lastLd->lnHead));
 		if (!curLn){
 			SLOG_ERROR ("Cannot find LN from LD");
 			return (scl_sdi);
 		} 
 		//find current doi, return if null found
-		SCL_DOI *curDoi = list_find_last(curLn->doiHead);
+		SCL_DOI *curDoi = list_find_last((DBL_LNK *)(curLn->doiHead));
 		if (!curDoi) {
 			SLOG_ERROR ("Cannot find DOI from LN");
 			return (scl_sdi);
 		}				
 		
 		//从DOI的最后一个SDI开始
-		SCL_SDI* curSdi = list_find_last(curDoi->sdiHead);
+		SCL_SDI* curSdi = list_find_last((DBL_LNK *)(curDoi->sdiHead));
 		if (!curSdi) {
 			SLOG_ERROR ("Cannot find SDI from DOI");
 			return (scl_sdi);
@@ -440,24 +488,34 @@ SCL_SDI *scl_sdi_sdi_add(SCL_INFO *scl_info) {
 /************************************************************************/
 SCL_DAI *scl_sdi_dai_add(SCL_INFO *scl_info) {
 	SCL_DAI *scl_dai = NULL;	/* assume failure	*/
-	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	if (!ap){
+		SLOG_ERROR ("Null access_point");
+		return (scl_dai);
+	} 
+	SCL_LD *lastLd = list_find_last((DBL_LNK *)ap->ldHead);
+	if (!lastLd) {
+		SLOG_ERROR ("NULL ldHead");
+		return (scl_dai);
+	}		
+	// SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
 	/* All higher level linked lists must be initialized.	*/
-	if (ldHead && ldHead->lnHead)
+	if (lastLd && lastLd->lnHead)
 	{
 		//find current ln, return if null found
-		SCL_LN *curLn = list_find_last(ldHead->lnHead);
+		SCL_LN *curLn = list_find_last((DBL_LNK*)(lastLd->lnHead));
 		if (!curLn){
 			SLOG_ERROR ("Cannot find LN from LD");
 			return (scl_dai);
 		} 
 		//find current doi, return if null found
-		SCL_DOI *curDoi = list_find_last(curLn->doiHead);
+		SCL_DOI *curDoi = list_find_last((DBL_LNK*)(curLn->doiHead));
 		if (!curDoi) {
 			SLOG_ERROR ("Cannot find DOI from LN");
 			return (scl_dai);
 		}				
 		
-		SCL_SDI* curSdi = list_find_last(curDoi->sdiHead);
+		SCL_SDI* curSdi = list_find_last((DBL_LNK*)(curDoi->sdiHead));
 		if (!curSdi) {
 			SLOG_ERROR ("Cannot find SDI from DOI");
 			return (scl_dai);
@@ -465,7 +523,7 @@ SCL_DAI *scl_sdi_dai_add(SCL_INFO *scl_info) {
 		//分两种情况, case DAI在SDI下级
 		
 		/* DAI 的头结点指向本级SDI*/
-		// SLOG_DEBUG("SCL_sdi_dai_add last SDI address 0x%p. SDI: %s doiname: %s, ln: %s, ld: %s", curDoi, curSdi->desc, curDoi->name, curLn->desc, ldHead->desc);
+		// SLOG_DEBUG("SCL_sdi_dai_add last SDI address 0x%p. SDI: %s doiname: %s, ln: %s, ld: %s", curDoi, curSdi->desc, curDoi->name, curLn->desc, lastLd->desc);
 		scl_dai = (SCL_DAI *) chk_calloc (1, sizeof (SCL_DAI));
 		/* Add DAI to front of DOI List.	*/
 		list_add_last (&curSdi->sdaiHead, scl_dai);
@@ -487,7 +545,12 @@ SCL_DATASET *scl_dataset_add (
 							  /* TRUNCATED if longer than buffer	*/
 {
 	SCL_DATASET *scl_dataset = NULL;	/* assume failure	*/
-	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
+	SCL_ACCESSPOINT* lastAp = list_find_last((DBL_LNK *)(scl_info->accessPointHead));
+	if (!lastAp) {
+		SLOG_DEBUG ("Null accpointhead");
+		return (scl_dataset);
+	}
+	SCL_LD *ldHead = list_find_last((DBL_LNK *)(lastAp->ldHead));
 	/* All higher level linked lists must be initialized.	*/
 	if (ldHead
 		&& ldHead->lnHead)
@@ -514,14 +577,25 @@ SCL_RCB *scl_rcb_add (
 					  SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_RCB *scl_rcb = NULL;
-	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
+	SCL_ACCESSPOINT* lastAp = list_find_last((DBL_LNK *)(scl_info->accessPointHead));
+	if (!lastAp) {
+		SLOG_DEBUG ("Null accpointhead");
+		return (scl_rcb);
+	}
+	SCL_LD *lastLd = list_find_last((DBL_LNK *)(lastAp->ldHead));
 	/* All higher level linked lists must be initialized.	*/
-	if (ldHead
-		&& ldHead->lnHead)
+	if (lastLd
+		&& lastLd->lnHead)
 	{
+		SCL_LN* lastLn = list_find_last((DBL_LNK *)lastLd->lnHead);
+		if (!lastLn) 
+		{
+			SLOG_DEBUG ("Null lnHead");
+			return (scl_rcb);
+		}
 		scl_rcb = (SCL_RCB *) chk_calloc (1, sizeof (SCL_RCB));
 		/* Add RCB to front of RCB List.	*/
-		list_add_first (&ldHead->lnHead->rcbHead, scl_rcb);
+		list_add_last (&lastLn->rcbHead, scl_rcb);
 	}
 	else
 	{
@@ -539,14 +613,29 @@ SCL_LCB *scl_lcb_add (
 					  SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_LCB *scl_lcb = NULL;
-	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	if (!ap){
+		SLOG_ERROR ("Null access_point");
+		return (scl_lcb);
+	} 
+	SCL_LD *lastLd = list_find_last((DBL_LNK *)ap->ldHead);
+	if (!lastLd) {
+		SLOG_ERROR ("NULL ldHead");
+		return (scl_lcb);
+	}		
+	
 	/* All higher level linked lists must be initialized.	*/
-	if (ldHead
-		&& ldHead->lnHead)
+	if (lastLd
+		&& lastLd->lnHead)
 	{
+		SCL_LN *lastLn = list_find_last((DBL_LNK *)lastLd->lnHead);
+		if (!lastLn) {
+			SLOG_ERROR ("NULL lnHead");
+			return (scl_lcb);
+		}	
 		scl_lcb = (SCL_LCB *) chk_calloc (1, sizeof (SCL_LCB));
 		/* Add LCB to front of LCB List.	*/
-		list_add_first (&ldHead->lnHead->lcbHead, scl_lcb);
+		list_add_last (&lastLn->lcbHead, scl_lcb);
 	}
 	else
 	{
@@ -568,14 +657,29 @@ SCL_GCB *scl_gcb_add (
 					  SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_GCB *scl_gcb = NULL;	/* assume failure	*/
-	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	if (!ap){
+		SLOG_ERROR ("Null access_point");
+		return (scl_gcb);
+	} 
+	SCL_LD *lastLd = list_find_last((DBL_LNK *)ap->ldHead);
+	if (!lastLd) {
+		SLOG_ERROR ("NULL ldHead");
+		return (scl_gcb);
+	}		
+	// SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
 	/* All higher level linked lists must be initialized.	*/
-	if (ldHead
-		&& ldHead->lnHead)
+	if (lastLd
+		&& lastLd->lnHead)
 	{
+		SCL_LN* lastLn = list_find_last((DBL_LNK *)(lastLd->lnHead));
+		if (!lastLn) {
+			SLOG_ERROR ("Cannot add GCB (GOOSE Control Block) to NULL LN");
+			return (scl_gcb);
+		}
 		scl_gcb = (SCL_GCB *) chk_calloc (1, sizeof (SCL_GCB));
 		/* Add GCB to front of GCB List.	*/
-		list_add_last (&ldHead->lnHead->gcbHead, scl_gcb);
+		list_add_last (&lastLn->gcbHead, scl_gcb);
 	}
 	else
 	{
@@ -593,19 +697,34 @@ SCL_SGCB *scl_sgcb_add (
 						SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_SGCB *scl_sgcb = NULL;	/* assume failure	*/
-	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	if (!ap){
+		SLOG_ERROR ("Null access_point");
+		return (scl_sgcb);
+	} 
+	SCL_LD *lastLd = list_find_last((DBL_LNK *)ap->ldHead);
+	if (!lastLd) {
+		SLOG_ERROR ("NULL ldHead");
+		return (scl_sgcb);
+	}			
+	// SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
 	/* All higher level linked lists must be initialized.	*/
-	if (ldHead
-		&& ldHead->lnHead)
+	if (lastLd
+		&& lastLd->lnHead)
 	{
+		SCL_LN* lastLn = list_find_last((DBL_LNK *)(lastLd->lnHead));
+		if (!lastLn) {
+			SLOG_ERROR ("Cannot add GCB (GOOSE Control Block) to NULL LN");
+			return (scl_sgcb);
+		}
 		/* Only one SGCB allowed. Make sure not already set.	*/
-		if (ldHead->lnHead->sgcb != NULL)
+		if (lastLn->sgcb != NULL)
 		{
 			SLOG_ERROR ("Duplicate SGCB (Setting Group Control Block) not allowed");
 			return (NULL);
 		}
 		else  
-			ldHead->lnHead->sgcb = scl_sgcb = (SCL_SGCB *) chk_calloc (1, sizeof (SCL_SGCB));
+			lastLn->sgcb = scl_sgcb = (SCL_SGCB *) chk_calloc (1, sizeof (SCL_SGCB));
 	}
 	else
 	{
@@ -623,14 +742,29 @@ SCL_SVCB *scl_svcb_add (
 						SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_SVCB *scl_svcb = NULL;	/* assume failure	*/
-	SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
+	SCL_ACCESSPOINT* ap = list_find_last((DBL_LNK *)scl_info->accessPointHead);
+	if (!ap){
+		SLOG_ERROR ("Null access_point");
+		return (scl_svcb);
+	} 
+	SCL_LD *lastLd = list_find_last((DBL_LNK *)ap->ldHead);
+	if (!lastLd) {
+		SLOG_ERROR ("NULL ldHead");
+		return (scl_svcb);
+	}				
+	// SCL_LD *ldHead = scl_info->accessPointHead->ldHead;
 	/* All higher level linked lists must be initialized.	*/
-	if (ldHead
-		&& ldHead->lnHead)
+	if (lastLd
+		&& lastLd->lnHead)
 	{
+		SCL_LN* lastLn = list_find_last((DBL_LNK *)(lastLd->lnHead));
+		if (!lastLn) {
+			SLOG_ERROR ("Cannot add GCB (GOOSE Control Block) to NULL LN");
+			return (scl_svcb);
+		}		
 		scl_svcb = (SCL_SVCB *) chk_calloc (1, sizeof(SCL_SVCB));
 		/* Add to front of list.	*/
-		list_add_first (&ldHead->lnHead->svcbHead, scl_svcb);
+		list_add_last (&lastLn->svcbHead, scl_svcb);
 	}
 	else
 	{
@@ -650,11 +784,17 @@ SCL_LN *scl_ln_add (
 	SCL_LN *scl_ln = NULL;	/* assume failure	*/
 
 	/* All higher level linked lists must be initialized.	*/
-	if (scl_info->accessPointHead->ldHead)
+	SCL_ACCESSPOINT* lastAp = list_find_last((DBL_LNK *)(scl_info->accessPointHead));
+	if (!lastAp) {
+		SLOG_DEBUG ("Null accpointhead");
+		return (scl_ln);
+	}
+	SCL_LD* lastLd = list_find_last((DBL_LNK *)(lastAp->ldHead));
+	if (lastLd)
 	{
 		scl_ln = (SCL_LN *) chk_calloc (1, sizeof (SCL_LN));
 		/* Add LN to front of LN List.	*/
-		list_add_last (&scl_info->accessPointHead->ldHead->lnHead, scl_ln);
+		list_add_last (&lastLd->lnHead, scl_ln);
 	}
 	else
 	{
@@ -672,10 +812,14 @@ SCL_LD *scl_ld_create (
 					   SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_LD *scl_ld = NULL;	/* assume failure	*/
-
+	SCL_ACCESSPOINT* lastAp = list_find_last((DBL_LNK *)(scl_info->accessPointHead));
+	if (!lastAp) {
+		SLOG_DEBUG ("Null accpointhead");
+		return (scl_ld);
+	}
 	scl_ld = (SCL_LD *) chk_calloc (1, sizeof (SCL_LD));
 	/* Add LD to front of LD List.	*/
-	list_add_first (&scl_info->accessPointHead->ldHead, scl_ld);
+	list_add_last (&lastAp->ldHead, scl_ld);
 
 	return (scl_ld);
 }
@@ -691,9 +835,7 @@ SCL_SUBNET *scl_subnet_create (
 	SCL_SUBNET *scl_subnet = NULL;	/* assume failure	*/
 
 	scl_subnet = (SCL_SUBNET *) chk_calloc (1, sizeof (SCL_SUBNET));
-	/* Add to front of list.	*/
-	list_add_first (&scl_info->subnetHead, scl_subnet);
-
+	list_add_last (&scl_info->subnetHead, scl_subnet);
 	return (scl_subnet);
 }
 
@@ -702,16 +844,23 @@ SCL_SUBNET *scl_subnet_create (
 /* Allocates a SCL_CAP struct						*/
 /* and adds it to the linked list "capHead" in SCL_SUBNET.		*/
 /************************************************************************/
-SCL_CAP *scl_cap_add ( SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
+SCL_CAP *scl_cap_add ( 
+							SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_CAP *scl_cap = NULL;	/* assume failure	*/
-
 	/* All higher level linked lists must be initialized.	*/
 	if (scl_info->subnetHead)
 	{
-		scl_cap = (SCL_CAP *) chk_calloc (1, sizeof (SCL_CAP));
-		/* Add to front of list.	*/
-		list_add_first (&scl_info->subnetHead->capHead, scl_cap);
+		SCL_SUBNET *lastSubnet = list_find_last((DBL_LNK *)(scl_info->subnetHead));
+		if (NULL != lastSubnet) {
+		// 	printf("times %d cap_add lastSubnet %p\n", i, lastSubnet);
+			scl_cap = (SCL_CAP *) chk_calloc (1, sizeof (SCL_CAP));
+		// 	/* Add to front of list.	*/
+			list_add_last (&lastSubnet->capHead, scl_cap);
+		// 	i++;
+		} else {
+			SLOG_ERROR ("Cannot add ConnectedAP to NULL SUBNET");
+		}
 	}
 	else
 	{
@@ -728,13 +877,24 @@ SCL_CAP *scl_cap_add ( SCL_INFO *scl_info)	/* main struct where all SCL info sto
 SCL_GSE *scl_gse_add (SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_GSE *scl_gse = NULL;	/* assume failure	*/
-
 	/* All higher level linked lists must be initialized.	*/
-	if (scl_info->subnetHead->capHead)
+	SCL_SUBNET *lastSubnet = list_find_last((DBL_LNK *)(scl_info->subnetHead));
+	if (!lastSubnet) {
+		SLOG_ERROR ("Cannot add GSE to NULL subNet");
+		return (scl_gse);
+	}
+	if (lastSubnet->capHead)
 	{
-		scl_gse = (SCL_GSE *) chk_calloc (1, sizeof (SCL_GSE));
+		SCL_CAP *lastCap = list_find_last((DBL_LNK *)(lastSubnet->capHead));
 		/* Add to front of list.	*/
-		list_add_last (&scl_info->subnetHead->capHead->gseHead, scl_gse);
+		if (NULL != lastCap) {
+			scl_gse = (SCL_GSE *) chk_calloc (1, sizeof (SCL_GSE));
+			/* Add to front of list.	*/
+			list_add_last (&lastCap->gseHead, scl_gse);
+		} else
+		{
+			SLOG_ERROR ("Cannot add GSE to NULL CAPNODE");
+		}
 	}
 	else
 	{
@@ -752,13 +912,24 @@ SCL_SMV *scl_smv_add (
 					  SCL_INFO *scl_info)	/* main struct where all SCL info stored*/
 {
 	SCL_SMV *scl_smv = NULL;	/* assume failure	*/
-
+	SCL_SUBNET *lastSubnet = list_find_last((DBL_LNK *)(scl_info->subnetHead));
+	if (!lastSubnet) {
+		SLOG_ERROR ("Cannot add GSE to NULL subNet");
+		return (scl_smv);
+	}
 	/* All higher level linked lists must be initialized.	*/
-	if (scl_info->subnetHead->capHead)
+	if (lastSubnet->capHead)
 	{
-		scl_smv = (SCL_SMV *) chk_calloc (1, sizeof (SCL_SMV));
+		SCL_CAP *lastCap = list_find_last((DBL_LNK *)(lastSubnet->capHead));
 		/* Add to front of list.	*/
-		list_add_last (&scl_info->subnetHead->capHead->smvHead, scl_smv);
+		if (NULL != lastCap) {
+			scl_smv = (SCL_SMV *) chk_calloc (1, sizeof (SCL_SMV));
+			/* Add to front of list.	*/
+			list_add_last (&lastCap->smvHead, scl_smv);
+		} else
+		{
+			SLOG_ERROR ("Cannot add SMV to NULL CAPNODE");
+		}
 	}
 	else
 	{
@@ -771,13 +942,25 @@ SCL_ADDRESS *scl_address_add (
 						  SCL_INFO *scl_info)
 {
 	SCL_ADDRESS *scl_addr = NULL;	/* assume failure	*/
-
+	SCL_SUBNET *lastSubnet = list_find_last((DBL_LNK *)(scl_info->subnetHead));
+	if (!lastSubnet) {
+		SLOG_ERROR ("Cannot add GSE to NULL subNet");
+		return (scl_addr);
+	}
 	/* All higher level linked lists must be initialized.	*/
-	if (scl_info->subnetHead->capHead)
+	if (lastSubnet->capHead)
 	{
-		scl_addr = (SCL_ADDRESS *) chk_calloc (1, sizeof (SCL_ADDRESS));
+		
+		SCL_CAP *lastCap = list_find_last((DBL_LNK *)(lastSubnet->capHead));
 		/* Add to front of list.	*/
-		scl_info->subnetHead->capHead->addr=scl_addr;
+		if (NULL != lastCap) {
+			scl_addr = (SCL_ADDRESS *) chk_calloc (1, sizeof (SCL_ADDRESS));
+			/* Add to front of list.	*/
+			list_add_last (&lastCap->addrHead, scl_addr);
+		} else {
+			SLOG_ERROR ("Cannot add Address to NULL CAPNODE");
+		}
+		
 	}
 	else
 	{
@@ -791,12 +974,16 @@ SCL_PORT *scl_port_add (
 						  SCL_INFO *scl_info)
 {
 	SCL_PORT *scl_port = NULL;	/* assume failure	*/
-
+	SCL_SUBNET *lastSubnet = list_find_last((DBL_LNK *)(scl_info->subnetHead));
+	if (!lastSubnet) {
+		SLOG_ERROR ("Cannot add GSE to NULL subNet");
+		return (scl_port);
+	}
 	/* All higher level linked lists must be initialized.	*/
-	if (scl_info->subnetHead->capHead)
+	if (lastSubnet->capHead)
 	{
 		//端口描述为:2-G 11-A..., 不超过4B
-		SCL_CAP *lastCap = list_find_last(scl_info->subnetHead->capHead);
+		SCL_CAP *lastCap = list_find_last((DBL_LNK *)(lastSubnet->capHead));
 		/* Add to front of list.	*/
 		if (NULL != lastCap) {
 			scl_port = (SCL_PORT *) chk_calloc (1, sizeof (SCL_PORT));
@@ -822,10 +1009,13 @@ SCL_PORT *scl_port_add (
  */
 SCL_ACCESSPOINT *scl_accesspoint_add (SCL_INFO *scl_info)
 {
-	SCL_ACCESSPOINT *scl_acpoint = NULL;
-	scl_acpoint = (SCL_ACCESSPOINT *) chk_calloc (1, sizeof (SCL_ACCESSPOINT));
+	SCL_ACCESSPOINT *scl_acpoint = (SCL_ACCESSPOINT *) chk_calloc (1, sizeof (SCL_ACCESSPOINT));;
+	if (!scl_acpoint) {
+		SLOG_ERROR (" malloc SCL_ACCESSPOINT memory failed");
+		return (scl_acpoint);
+	}
 	/* Add to front of list.	*/
-	list_add_first (&scl_info->accessPointHead, scl_acpoint);
+	list_add_last (&scl_info->accessPointHead, scl_acpoint);
 
 	return (scl_acpoint);	
 }
@@ -894,6 +1084,7 @@ ST_VOID scl_info_destroy (SCL_INFO *scl_info)
 	SCL_GSE *scl_gse;
 	SCL_SMV *scl_smv;
 	SCL_PORT *scl_port;
+	SCL_ADDRESS* scl_address;
 	SCL_DOI *scl_doi;
 	SCL_SDI *scl_sdi;
 	SCL_IED *scl_ied;
@@ -1050,11 +1241,12 @@ ST_VOID scl_info_destroy (SCL_INFO *scl_info)
 			{
 				chk_free(scl_port);
 			}			
-			if(scl_cap->addr != NULL)
+			
+			while ((scl_address = (SCL_ADDRESS *) list_get_first(&scl_cap->addrHead)) != NULL)
 			{
-				chk_free(scl_cap->addr);
-			}
-
+				chk_free(scl_address);
+			}	
+			
 			if (scl_cap->desc)
 				chk_free (scl_cap->desc);
 			chk_free (scl_cap);

@@ -353,6 +353,7 @@ typedef enum {
 	typedef struct scl_address
 	{
 		/* CRITICAL: First 2 parameters used to add this struct to linked	*/
+		DBL_LNK l;
 		ST_CHAR IP[20+1]; /* IP address	*/
 		ST_CHAR IPSUBNET[20+1];
 		ST_CHAR IPGATEWAY[21];	
@@ -362,7 +363,10 @@ typedef enum {
 	{
 		struct scl_ports *next;
 		struct scl_ports *prev;
-		ST_CHAR portCfg[MAX_IDENT_LEN+1];
+		ST_CHAR portValue[MAX_IDENT_LEN+1];
+		ST_CHAR portPlug[MAX_IDENT_LEN+1];
+		ST_CHAR portType[MAX_IDENT_LEN+1];
+		ST_CHAR portCable[MAX_IDENT_LEN+1];
 	} SCL_PORT;
 	
 	/* Data from "ConnectedAP" element	*/
@@ -377,7 +381,7 @@ typedef enum {
 		/* may be long so allocate if present*/
 		ST_CHAR apName[MAX_IDENT_LEN+1];
 		SCL_PORT *portHead;
-		SCL_ADDRESS *addr;
+		SCL_ADDRESS* addrHead;
 		SCL_GSE *gseHead;      /* head of list of GSE defs	*/
 		SCL_SMV *smvHead;      /* head of list of SMV defs	*/
 	} SCL_CAP;
@@ -855,6 +859,7 @@ typedef enum {
 		ST_CHAR subNetWorkType[ MAX_IDENT_LEN+1 ];
 		ST_CHAR apName[MAX_IDENT_LEN + 1]; //G1 S1 
 		SCL_ADDRESS address;
+		// SCL_CAP* capHead;
 		SCL_GSE*  gseHead;      /* head of list of GSE defs	*/
 		SCL_SMV*  smvHead;      /* head of list of SMV defs	*/
 		SCL_PORT* portHead;		/* head of list of */
@@ -879,15 +884,6 @@ typedef enum {
 		ST_CHAR *ref;
 	}SCL_LNINFO;
 
-	/**
-  	* @Description: SCL 结构化解析结果存放在该结构内
-  	*/
-	typedef struct 
-	{
-		SCL_COMM* pCommHead;
-		SCL_DATASET* pDataSet;
-		SCL_LNINFO* pLnInfo;
-	}SCL_USER;
 	/************************************************************************/
 	/************************************************************************/
 	/* FUNCTIONS to store SCL info in "SCL_INFO" structure.			*/
@@ -997,8 +993,8 @@ typedef enum {
 	extern ST_INT scl_debug_mode_error_count;
 
 	/************************************************************************/
-	/* Functions to find objects in SCL_INFO.				
-	/* user utilty functions*/
+	/* Functions to find objects in SCL_INFO. */				
+	/* user utilty functions */
 	/************************************************************************/
 	SCL_GSE *scl_gse_find (SCL_INFO *scl_info, SCL_LD *scl_ld, SCL_GCB *scl_gcb);
 	ST_CHAR *scl_rptCtlget(ST_UINT8* rptPtr, SD_CONST ST_CHAR *field);

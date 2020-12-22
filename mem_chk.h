@@ -156,15 +156,7 @@ extern "C" {
 
  #else	/* !DEBUG_SISCO	*/
 
-static ST_CHAR *nd_chk_strdup (ST_CHAR *str)
-{
-    if (!str || strlen(str) == 0) return NULL;
-    ST_CHAR *new_str;
-    new_str = (ST_CHAR *) malloc (strlen (str) + 1);
-    if (!new_str) return NULL;
-    strcpy (new_str, str);
-    return (new_str);
-}
+
 
   #define M_MALLOC(ctx,x)	malloc  (x)
   #define M_CALLOC(ctx,x,y)	calloc  (x,y)

@@ -1,6 +1,6 @@
 /*
  * @Date: 2020-12-07 09:27
- * @LastEditTime: 2020-12-15 10:39
+ * @LastEditTime: 2020-12-22 14:33
  * @LastEditors: tangkai3
  * @Description: 
  */
@@ -12,20 +12,28 @@ extern "C" {
 #endif
 #include "glbtypes.h"
 #include "mem_chk.h"
+#include "str_util.h"
 #include "slog.h"
 #include "scl.h"
+#include "storage.h"
+#include <sys/time.h>
 
+#define DB_SQLITE3
 
 int load_scd_file(const char* fileName, SCL_INFO* sclInfo);
 void release_scd_file(SCL_INFO* sclInfo);
-int scdGetCommunicationInfo(SCL_INFO* sclInfo, SCL_USER* user);
-int scdGetDataSetInfo(SCL_INFO* sclInfo, SCL_USER* user);
-int sclGetDoiNameValue(SCL_INFO* sclInfo, SCL_USER* user);
+void scdGetIedStructInfo(SCL_INFO* sclInfo, void* database);
+void scdGetCommuncationInfo(SCL_INFO* sclInfo, void* database);
+int scdGetDataSetInfo(SCL_INFO* sclInfo, void* database);
+int sclGetDoiNameValue(SCL_INFO* sclInfo, void* database);
 int sclGetDOInfoByLnType(SCL_INFO* sclInfo, const char* lnType, SCL_DO** lnInfo);
 int sclGetDAListByDoType(SCL_INFO* sclInfo, const char* DoType, SCL_DA** pDAInfo);
 int sclGetBdaByDaType(SCL_INFO* sclInfo, const char* DaType, SCL_BDA** pBdaHead);
 int sclGetEnumValByDaType(SCL_INFO* sclInfo, const char* DaType, SCL_ENUMVAL** enumvalHead);
-void release_scd_userInfo(SCL_USER* userInfo);
+int sclGetUrcbElements(SCL_INFO* sclInfo, void* database);
+int sclGetBrcbElements(SCL_INFO* sclInfo, void* database);
+int sclGetLogControlBack(SCL_INFO* sclInfo, void* database);
+
 #ifdef __cplusplus
 }
 #endif

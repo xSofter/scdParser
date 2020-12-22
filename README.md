@@ -49,3 +49,10 @@ ICD/CID xml file parse for IEC61850 protocol
 3 增加PUB文件的API接口,提供更多解析功能  
 4 增加ustorage源文件,将解析支持结果存储在sqlit3和mySql数据库中  
 5 解决解析scd文件中出现可选字段不存在时,解析停止的问题  
+
+## 2020-12-22  
+1 支持数据库存储通信、buffer和非buffer报告、支持存储log信息  
+2 优化用户信息展示对内存的占用  
+3 通信信息表支持GSE SMV的APPID VLAN的查看  
+4 支持查看scl文件的IED信息,crc和全站CRC信息  
+5 API的异常流程增加日志和指针保护处理

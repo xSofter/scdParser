@@ -100,7 +100,7 @@ ST_RET asciiToFloat   (const ST_CHAR  *astr,
 ST_RET asciiToDouble   (const ST_CHAR *astr,
                        ST_DOUBLE *doubleNum);
 
-
+ST_CHAR *nd_chk_strdup (ST_CHAR *str);
 char *strnstr (char *str1, char *str2, int len);
 
 /* SISCO code calls strcmpi, stricmp, strnicmp (Windows functions).	*/
@@ -131,7 +131,7 @@ ST_RET strncat_maxstrlen (char *dest, char *src, size_t maxstrlen);
 
 /* "strncpy_safe" makes sure that the "dest" string is NULL-terminated.	*/
 /* The standard "strncpy" does NOT always NULL-terminate "dest".	*/
-ST_VOID strncpy_safe (char *dest, char *src, int max_len);
+ST_VOID strncpy_safe (char *dest, const char *src, int max_len);
 
 ST_CHAR *sInt8ToAscii  (ST_INT8   v, ST_CHAR *p);
 ST_CHAR *uInt8ToAscii  (ST_UINT8  v, ST_CHAR *p);
