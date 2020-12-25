@@ -347,7 +347,7 @@ struct sockaddr_dl;		/* forward reference			*/
 #define _SASSERT(e) \
 	{ \
 	int assertResult = (e) ? 1 : 0; \
-	if (!assertResult) {SLOGALWAYS3("Assertion failed: '%s', file %s, line %d", #e, __FILE__, __LINE__);} \
+	if (!assertResult) {SLOG_INFO3("Assertion failed: '%s', file %s, line %d", #e, __FILE__, __LINE__);} \
 	assert (assertResult); \
 	}
 #endif
@@ -356,7 +356,7 @@ struct sockaddr_dl;		/* forward reference			*/
 #define _SASSERTE(e) \
 	{ \
 	int assertResult = (e) ? 1 : 0; \
-	if (!assertResult) {SLOGALWAYS3("Assertion failed: '%s', file %s, line %d", #e, __FILE__, __LINE__);} \
+	if (!assertResult) {SLOG_INFO3("Assertion failed: '%s', file %s, line %d", #e, __FILE__, __LINE__);} \
 	assert (assertResult); \
 	}
 #endif

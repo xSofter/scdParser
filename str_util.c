@@ -289,6 +289,10 @@ ST_RET strncat_maxstrlen (char *dest, char *src, size_t maxstrlen)
 /************************************************************************/
 ST_VOID strncpy_safe (char *dest, const char *src, int max_len)
 {
+	if (!src || !strlen (src)){
+		dest[0] = '\0';
+		return;
+	}
 	strncpy (dest, src, max_len);
 	dest[max_len] = '\0';
 }
@@ -885,7 +889,7 @@ ST_CHAR *get_next_string (ST_CHAR **ptrptr, ST_CHAR *delimiters)
 				next_delimiter = strpbrk (curptr, delimiters);	/* find next delimiter	*/
 				if (next_delimiter != curptr)
 				{
-					SLOGALWAYS ("get_next_string ERROR: '%c' after ending quote. Expecting delimiter.", *curptr);
+					SLOG_INFO ("get_next_string ERROR: '%c' after ending quote. Expecting delimiter.", *curptr);
 					string = NULL;	/* error	*/
 					curptr = NULL;	/* error	*/
 				}

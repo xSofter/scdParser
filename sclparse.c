@@ -31,7 +31,7 @@
 /* __FILE__ strings.                                                    */
 
 #ifdef DEBUG_SISCO
-SD_CONST static ST_CHAR *SD_CONST thisFileName = __FILE__;
+const static ST_CHAR * thisFileName = __FILE__;
 #endif
 
 #define SCL_ATTR_OPTIONAL 	0	/* attribute is optional	*/
@@ -87,6 +87,7 @@ typedef struct scl_dec_ctrl
 	ST_BOOLEAN accessPointFound;	/* SD_TRUE if IED and AccessPoint found	*/
 	ST_BOOLEAN iedNameMatched;	
 	ST_BOOLEAN accessPointMatched;
+	ST_UINT8 iedNums;
 	SCL_ACCESSPOINT *scl_apInfo;
 	SCL_INFO *sclInfo;	/* save scl info for user*/
 	SCL_CAP* scl_cap;	//申请cap的访问指针,该指针指向新申请的地址
@@ -796,23 +797,25 @@ static ST_VOID _Substation_CrcFun(SX_DEC_CTRL *sxDecCtrl)
 	ST_INT strLen;
 	sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
 	sclInfo = sclDecCtrl->sclInfo;
-	if (sxDecCtrl->reason == SX_ELEMENT_END)
-	{
+	// if (sxDecCtrl->reason == SX_ELEMENT_START)
+	// {
 		if (scl_get_attr_ptr (sxDecCtrl, "type", &typeStrValue, SCL_ATTR_OPTIONAL) == SD_SUCCESS)
 		{
-			if (strcmp (typeStrValue, "Substation virtual terminal conection CRC") != 0)
+			if (strcasecmp (typeStrValue, "Substation virtual terminal conection CRC") != 0)
 			{
 				SLOG_ERROR ("Private attribute type='%s' not allowed. Assuming type desc='Substation virtual terminal conection CRC' ", typeStrValue);
+				return;
 			}
-			
+
 			if (sx_get_string_ptr (sxDecCtrl, &strOut, &strLen) == SD_SUCCESS)
 			{
 				if (!strLen) return;
+				//一个文件只能有一个header
 				strncpy_safe (sclInfo->Header.sclCrc, strOut, MAX_CRC32_LEN);
-				SLOG_DEBUG("virtual terminal conection CRC %s strlen: %d", sclInfo->Header.sclCrc, strLen);
+				SLOG_DEBUG("Substation virtual terminal conection CRC %s strlen: %d", sclInfo->Header.sclCrc, strLen);
 			}
 		}
-	}
+	// }
 	return;
 }
 /************************************************************************/
@@ -825,7 +828,7 @@ static ST_VOID _Header_SFun (SX_DEC_CTRL *sxDecCtrl)
 	ST_CHAR *nameStructure;
 	ST_RET ret;
 	SCL_INFO *sclInfo;
-	SLOG_DEBUG("Paser _Header_SFun");
+	SLOG_INFO("Paser _Header_SFun");
 	sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
 	sclInfo = sclDecCtrl->sclInfo;
 
@@ -1141,7 +1144,6 @@ static ST_VOID _S1_ConnPortFun (SX_DEC_CTRL *sxDecCtrl)
 			return;
 		}
 
-		SLOG_DEBUG("typeStr %s", typeStr);
 		sclDecCtrl->scl_ports = scl_port_add(sclDecCtrl->sclInfo);
 		if ( NULL ==  sclDecCtrl->scl_ports)
 		{
@@ -1323,7 +1325,7 @@ static ST_VOID _IED_SEFun (SX_DEC_CTRL *sxDecCtrl)
 {
 	SCL_DEC_CTRL *sclDecCtrl;
 	ST_CHAR *str;	/* ptr set by scl_get_attr_ptr	*/
-	ST_CHAR *configver;
+	ST_CHAR *configver = NULL;
 	ST_CHAR *desc, *iedType, *manufacturer;
 
 	ST_RET ret;
@@ -1342,24 +1344,28 @@ static ST_VOID _IED_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		// required = SD_TRUE;
 
 		ret = scl_get_attr_ptr (sxDecCtrl, "name", &str, SCL_ATTR_REQUIRED);
-		ret |= scl_get_attr_ptr (sxDecCtrl, "configVersion", &configver, SCL_ATTR_OPTIONAL);
 		if (ret != SD_SUCCESS)
 		{
 			return;
-		}
+		}		
+		ret = scl_get_attr_ptr (sxDecCtrl, "configVersion", &configver, SCL_ATTR_OPTIONAL);
 
+		sclDecCtrl->iedNums++;
 		strncpy_safe (scl_lIED->iedName, str, MAX_IDENT_LEN);
-		strncpy_safe (scl_lIED->configVersion, configver, VERSION_LEN);
+		if (configver && strlen(configver) )
+		{
+			strncpy_safe (scl_lIED->configVersion, configver, VERSION_LEN);
+		}
 //        strncpy_safe (sclDecCtrl->sclInfo->iedName, str, MAX_IDENT_LEN);
 		strncpy_safe (sclDecCtrl->iedName, str, MAX_IDENT_LEN);
-		//SLOG_DEBUG ("SCL PARSE: IED 'name' match found: %s", str);
+		SLOG_DEBUG ("SCL PARSE: IED 'name' match found: %s total IED device numbers: %d", str, sclDecCtrl->iedNums);
 		//sclDecCtrl->iedNameMatched = SD_TRUE;
 
 		/* start optional attributes */
 		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &desc, SCL_ATTR_REQUIRED);
 		if (ret == SD_SUCCESS)
 			scl_lIED->desc = chk_strdup (desc);	/* Alloc & copy desc string	*/
-		ret = scl_get_attr_ptr (sxDecCtrl, "type", &iedType, SCL_ATTR_REQUIRED);
+		ret = scl_get_attr_ptr (sxDecCtrl, "type", &iedType, SCL_ATTR_OPTIONAL);
 		if (ret == SD_SUCCESS)
 			scl_lIED->iedType = chk_strdup (iedType);	/* Alloc & copy desc string	*/			
 		ret = scl_get_attr_ptr (sxDecCtrl, "manufacturer", &manufacturer, SCL_ATTR_OPTIONAL);
@@ -1367,7 +1373,10 @@ static ST_VOID _IED_SEFun (SX_DEC_CTRL *sxDecCtrl)
 			scl_lIED->manufacturer = chk_strdup (manufacturer);	/* Alloc & copy desc string	*/	
 
 		sx_push (sxDecCtrl, sizeof(IEDElements)/sizeof(SX_ELEMENT), IEDElements, SD_FALSE);
-	
+		if (sxDecCtrl->errCode != SX_PARSING_OK) {
+			SLOG_ERROR ("sxDecCtrl->errCode is %d", sxDecCtrl->errCode);
+		}
+		
 		/* end required attributes */
 	}
 	else
@@ -1392,9 +1401,7 @@ static ST_VOID _AccessPoint_PrivateFun  (SX_DEC_CTRL *sxDecCtrl)
 	ST_CHAR *strOut;
 	ST_INT strLen;
 
-	SLOG_DEBUG("Parse _AccessPoint_PrivateFun");
-
-	if (sxDecCtrl->reason == SX_ELEMENT_END)
+	if (sxDecCtrl->reason == SX_ELEMENT_START)
 	{
 		ret = scl_get_attr_ptr (sxDecCtrl, "type", &str, required);
 		if (ret != SD_SUCCESS)
@@ -1408,8 +1415,13 @@ static ST_VOID _AccessPoint_PrivateFun  (SX_DEC_CTRL *sxDecCtrl)
 			{
 				
 				if (sclDecCtrl->sclInfo->lIEDHead != NULL) {
-					strncpy_safe (sclDecCtrl->sclInfo->lIEDHead->iedDeviceCrc, strOut, MAX_CRC32_LEN);
-					SLOG_DEBUG ("IED virtual terminal conection CRC: %s", sclDecCtrl->sclInfo->lIEDHead->iedDeviceCrc);
+					SCL_IED *ied = list_get_last(sclDecCtrl->sclInfo->lIEDHead);
+					if (!ied) {
+						SLOG_ERROR ("last IED pointer is NUll");
+						return;
+					}
+					strncpy_safe (ied->iedDeviceCrc, strOut, MAX_CRC32_LEN);
+					SLOG_DEBUG ("IED virtual terminal conection CRC: %s", ied->iedDeviceCrc);
 				} else {
 					SLOG_ERROR ("lIEDHead pointer is NUll");
 				}
@@ -1443,17 +1455,18 @@ static ST_VOID _AccessPoint_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		}
 		required = SD_TRUE;
 		ret = scl_get_attr_ptr (sxDecCtrl, "name", &name, SCL_ATTR_REQUIRED);
-		if (strlen(name) > FIX_STR_LEN_3)
+		//初步写个立即数12
+		if (strlen(name) > 12)
 		{
-			SLOG_ERROR("AccessPoint name= %s is illegal.", name);
-			scl_stop_parsing (sxDecCtrl, "name", SX_REQUIRED_TAG_NOT_FOUND);
-			return;
+			SLOG_ERROR("AccessPoint name= %s is illegal. 'S1' 'G1' or ...", name);
+			// scl_stop_parsing (sxDecCtrl, "name", SX_REQUIRED_TAG_NOT_FOUND);
+			// return;
 		}		
 		ret = scl_get_attr_ptr (sxDecCtrl, "desc", &desc, SCL_ATTR_OPTIONAL);
 	
 		scl_acpoint->desc =  chk_strdup (desc); /* Alloc & copy desc string	*/
-		strncpy_safe(scl_acpoint->name, name, FIX_STR_LEN_3);
-		strncpy_safe(sclDecCtrl->accessPointName, name, FIX_STR_LEN_3);
+		strncpy_safe(scl_acpoint->name, name, 12);
+		strncpy_safe(sclDecCtrl->accessPointName, name, 12);
 		//原函数传参没有用处,目前需要考虑多个Accesspoint
 		// SLOG_DEBUG ("SCL PARSE: AccessPoint name: %s", sclDecCtrl->accessPointName);
 		SLOG_DEBUG ("SCL PARSE: AccessPoint name: %s desc: %s", scl_acpoint->name, scl_acpoint->desc);
@@ -2388,7 +2401,7 @@ static ST_VOID _SDI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 			*p = 0;
 		else
 			sclDecCtrl->flattened[0] = 0; //added by luolinglu
-		SLOG_DEBUG ("SCL PARSE: Removed last item from flattened variable: '%s'", sclDecCtrl->flattened);
+		SLOG_INFO ("SCL PARSE: Removed last item from flattened variable: '%s'", sclDecCtrl->flattened);
 		sx_pop (sxDecCtrl);
 	}
 }
@@ -2454,7 +2467,7 @@ static ST_VOID _DOI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		}
 
 		strncpy_safe (scl_dai->flattened, sclDecCtrl->flattened, MAX_FLAT_LEN);
-		SLOG_DEBUG(" _DOI_DAI_SEFun name %s flattened %s sAddr %s", name, scl_dai->flattened, scl_dai->sAddr);
+		SLOG_DEBUG(" _DOI_DAI_SEFun flattened name %s sAddr %s", scl_dai->flattened, scl_dai->sAddr);
 
 		//只有DOI的DAI element需要解析
 		sx_push (sxDecCtrl, sizeof(DAIElements)/sizeof(SX_ELEMENT), DAIElements, SD_FALSE);    
@@ -2469,7 +2482,7 @@ static ST_VOID _DOI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		else
 			sclDecCtrl->flattened[0] = '\0'; //added by luolinglu
 
-		SLOG_DEBUG ("SCL PARSE: Removed last item from flattened variable: '%s'", sclDecCtrl->flattened);
+		SLOG_INFO ("SCL PARSE: Removed last item from flattened variable: '%s'", sclDecCtrl->flattened);
 		sx_pop (sxDecCtrl);
 	}
 }
@@ -2535,7 +2548,7 @@ static ST_VOID _SDI_SDI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 			*p = 0;
 		else
 			sclDecCtrl->flattened[0] = 0; //added by luolinglu
-		SLOG_DEBUG ("SCL PARSE: Removed last item from flattened variable: '%s'", sclDecCtrl->flattened);
+		SLOG_INFO ("SCL PARSE: Removed last item from flattened variable: '%s'", sclDecCtrl->flattened);
 		sx_pop (sxDecCtrl);
 	}
 }
@@ -2616,7 +2629,7 @@ static ST_VOID _SDI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		else
 			sclDecCtrl->flattened[0] = '\0'; //added by luolinglu
 
-		SLOG_DEBUG ("SCL PARSE: Removed last item from flattened variable: '%s'", sclDecCtrl->flattened);
+		SLOG_INFO ("SCL PARSE: Removed last item from flattened variable: '%s'", sclDecCtrl->flattened);
 		sx_pop (sxDecCtrl);
 	}
 }
@@ -2706,7 +2719,6 @@ static ST_VOID _DO_SFun (SX_DEC_CTRL *sxDecCtrl)
 {
 	SCL_DEC_CTRL *sclDecCtrl;
 	ST_RET ret;
-	ST_BOOLEAN required = SD_FALSE;
 	SCL_DO *scl_do;
 	ST_CHAR *desc;
 
@@ -2718,14 +2730,13 @@ static ST_VOID _DO_SFun (SX_DEC_CTRL *sxDecCtrl)
 		scl_stop_parsing (sxDecCtrl, "scl_lntype_add_do", SX_USER_ERROR);
 		return;
 	}
-	ret = scl_get_attr_ptr (sxDecCtrl, "desc", &desc, required);
+	ret = scl_get_attr_ptr (sxDecCtrl, "desc", &desc, SCL_ATTR_OPTIONAL);
 	if (ret == SD_SUCCESS)
 		scl_do->desc = chk_strdup (desc);	/* Alloc & copy desc string	*/
 
 	/* start required attributes */
-	required = SD_TRUE;
-	ret = scl_get_attr_copy (sxDecCtrl, "name", scl_do->name, (sizeof(scl_do->name)-1), required);
-	ret |= scl_get_attr_copy (sxDecCtrl, "type", scl_do->type, (sizeof(scl_do->type)-1), required);
+	ret = scl_get_attr_copy (sxDecCtrl, "name", scl_do->name, (sizeof(scl_do->name)-1), SCL_ATTR_REQUIRED);
+	ret |= scl_get_attr_copy (sxDecCtrl, "type", scl_do->type, (sizeof(scl_do->type)-1), SCL_ATTR_REQUIRED);
 	if (ret != SD_SUCCESS)
 	{
 		return;

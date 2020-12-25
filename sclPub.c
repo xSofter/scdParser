@@ -1,6 +1,6 @@
 /*
  * @Date: 2020-12-07 09:25
- * @LastEditTime: 2020-12-24 17:37
+ * @LastEditTime: 2020-12-25 13:52
  * @LastEditors: tangkai3
  * @Description: 模块对外接口函数
  */
@@ -24,7 +24,7 @@ ST_RET load_scd_file(const char* fileName, SCL_INFO* sclInfo)
 	ST_CHAR *accessPointName = "S1";
 	ST_RET rc = 0;
 
-	slog_start(SX_LOG_ALWAY, LOG_FILE_EN, DBG_LOG_FILE_NAME, USR_LOG_FILE_NAME); //SX_LOG_ERROR  SX_LOG_ALWAY
+	slog_start(SX_LOG_DEBUG, LOG_FILE_EN, DBG_LOG_FILE_NAME, USR_LOG_FILE_NAME); //SX_LOG_ERROR  SX_LOG_ALWAY
 	rc = scl_parse(fileName, iedName, accessPointName, sclInfo);
 	
 	return rc;

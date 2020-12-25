@@ -59,15 +59,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef enum {
-	FIX_STR_LEN_1 = 1,
-	FIX_STR_LEN_2,
-	FIX_STR_LEN_3,
-	FIX_STR_LEN_4,
-	FIX_STR_LEN_5
-} enum_str_lenth;
 
-#define MAX_IDENT_LEN 100
+#define MAX_IDENT_LEN 128
 #define MVL61850_MAX_RPTID_LEN 64
 #define CLNP_MAX_LEN_MAC 12	/* 采用12字节显示,010CCD010000 */
 #define MAX_CRC32_LEN 8
@@ -671,11 +664,11 @@ typedef enum {
 		/* CRITICAL: First 2 parameters used to add this struct to linked	*/
 		/* lists using list_add_last, etc.					*/
 		DBL_LNK l;
-		ST_CHAR name[FIX_STR_LEN_3+1];		//S1 G1 M1
+		ST_CHAR name[12+1];		//S1 G1 M1
 		ST_CHAR *desc;		/* description (optional)*/
 		/* may be long so allocate if present*/
-		ST_CHAR router[FIX_STR_LEN_5+1];	//only choose True or false
-		ST_CHAR clock[FIX_STR_LEN_5+1];		//only choose True or false
+		ST_CHAR router[5+1];	//only choose True or false
+		ST_CHAR clock[5+1];		//only choose True or false
 		/* Logical Device (MMS Domain) definitions (from AccessPoint section)	*/
 		SCL_LD *ldHead;		/* head of list of LDevice defs		*/
 	} SCL_ACCESSPOINT;
@@ -865,24 +858,6 @@ typedef enum {
 		SCL_PORT* portHead;		/* head of list of */
 	}SCL_COMM;
 
-	/**
-	 * @Description: 保存用户LN信息
-	 */
-	typedef struct {
-		DBL_LNK l;
-		ST_CHAR ldinst[MAX_IDENT_LEN+1];	/* LD inst name		*/
-		ST_CHAR lnVarName[MAX_IDENT_LEN+1];	/* variable name (constructed)	*/
-		ST_CHAR *lnDesc;			/* description (optional)*/
-		ST_CHAR doiName[MAX_IDENT_LEN+1];
-		ST_CHAR *doiDesc;			/* description (optional)*/
-		ST_CHAR daiName[MAX_IDENT_LEN+1];
-		ST_CHAR *daiDesc;			/* description (optional)*/
-		ST_CHAR daisAddr[MAX_IDENT_LEN+1];
-		ST_CHAR *daiVal;
-		ST_CHAR daiType[MAX_IDENT_LEN+1];
-		ST_CHAR fc[MAX_FC_LEN+1];		/* for DA only: functional constraint	*/
-		ST_CHAR *ref;
-	}SCL_LNINFO;
 
 	/************************************************************************/
 	/************************************************************************/

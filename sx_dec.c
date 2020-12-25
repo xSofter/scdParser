@@ -159,7 +159,6 @@ ST_RET sx_parse_mt (ST_LONG lMsgLen, ST_CHAR *xml, ST_INT numItems,
 
 	//这个函数,每次进来,栈深度加一
 	sx_push (sxDecCtrl, numItems, itemTbl, SD_FALSE);
-	SLOG_DEBUG("sxDecCtrl->itemStackLevel: %d", sxDecCtrl->itemStackLevel);
 	sxDecCtrl->xmlStart = xml;
 	sxDecCtrl->xmlLen = lMsgLen;
 	sxDecCtrl->ignoreNS = sxIgnoreNS;
@@ -294,7 +293,7 @@ ST_VOID sxStartElement (SX_DEC_CTRL *sxDecCtrl)
 
 		if (*numOccPtr > 1)
 		{
-			SLOG_DEBUG ("Tag %s Number occurences: %d", tag, *numOccPtr);
+			SLOG_INFO ("Tag %s Number occurences: %d", tag, *numOccPtr);
 		}
 
 		/* Save the item for later */
@@ -1979,7 +1978,7 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 				}
 				
 			}
-			SLOG_DEBUG ("=========================tag start: %s=========================", sxDecElInfo->tag);
+			SLOG_INFO ("=========================tag start: %s=========================", sxDecElInfo->tag);
 			
 			//if not found
 			if (SX_RIP_DONE)
@@ -2226,7 +2225,7 @@ ST_RET sx_rip_xml (SX_DEC_CTRL *sxDecCtrl)
 			}
 			*tagDest = 0;		/* terminate the tag */
 
-			SLOG_DEBUG ("=========================tag end: %s=========================", sxDecElInfo->tag);
+			SLOG_INFO ("=========================tag end: %s=========================", sxDecElInfo->tag);
 
 			/* any white space up to the end of the tag name */
 			while (*xml != '>' && SX_RIP_NOT_DONE)
@@ -2679,7 +2678,7 @@ ST_VOID sx_get_stVal_by_fcda(SCL_INFO *sclInfo, SCL_LD* scl_ld, SCL_FCDA* fcda) 
 					if (strcasecmp(daName, sdi->name))  continue;
 					//如果FCDA没有写daname
 					for (dai = sdi->sdaiHead; dai != NULL; dai = (SCL_DAI *)list_get_next(sdi->sdaiHead, dai)) {
-						if (!strlen(dai->sAddr)) continue;	
+						// if (!strlen(dai->sAddr)) continue;	
 						strncpy_safe(fcda->doRefsAddr, dai->sAddr, MAX_IDENT_LEN);
 						return;			
 					}					

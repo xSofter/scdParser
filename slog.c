@@ -94,8 +94,9 @@ ST_VOID slog (SD_CONST ST_CHAR *SD_CONST format, ...)
 	// SD_CONST ST_CHAR *SD_CONST sourceFile=g_sourceFile;
 	// SD_CONST ST_INT lineNum=g_lineNum;
 	// SD_CONST ST_CHAR *SD_CONST functionName=g_funName;
-
-	if(g_lc.logType > g_logType)
+	
+	//小于本级别的日志,不记录
+	if(g_logType < g_lc.logCtrl )
 	{
 		// printf("logType %d not equals %d.\n", g_logType, g_lc.logType);
 		return;
@@ -350,9 +351,9 @@ ST_VOID slogCallStack (LOG_CTRL *lc, SD_CONST ST_CHAR *txt)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-ST_RET slog_start (SD_CONST ST_UINT32 logCtrl, SD_CONST ST_UINT32 logType, SD_CONST ST_CHAR *sFile, SD_CONST ST_CHAR *sUsrLog)
+ST_RET slog_start (SD_CONST ST_UINT32 logLevel, SD_CONST ST_UINT32 logType, SD_CONST ST_CHAR *sFile, SD_CONST ST_CHAR *sUsrLog)
 {
-	g_lc.logCtrl=logCtrl;
+	g_lc.logCtrl=logLevel;
 	g_lc.logType=logType;
 	
 	if (sFile)
@@ -372,6 +373,7 @@ ST_RET slog_start (SD_CONST ST_UINT32 logCtrl, SD_CONST ST_UINT32 logType, SD_CO
 			exit(-1);
 		}
 	}
+
 	return SD_SUCCESS;
 }
 //////////////////////////////////////////////////////////////////////////

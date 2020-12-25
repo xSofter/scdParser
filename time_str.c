@@ -1480,7 +1480,7 @@ ST_RET Btime6StringToVals (ST_CHAR *src, ST_INT32 *numDays, ST_INT32 *numMSec)
 
 	if (getTsDateTime (src, &dt) != SD_SUCCESS)
 	{
-		SLOGALWAYS ("Btime6StringToVals: Unable to parse Btime6 '%s'", src);
+		SLOG_INFO ("Btime6StringToVals: Unable to parse Btime6 '%s'", src);
 		return SD_FAILURE;      /* bad parameters */
 	}
 
@@ -1498,7 +1498,7 @@ ST_RET Btime6StringToVals (ST_CHAR *src, ST_INT32 *numDays, ST_INT32 *numMSec)
 
 	if (w_time_t == (time_t) -1) 
 	{
-		SLOGALWAYS ("Btime6StringToVals: Unable to convert '%s' to time_t", src);
+		SLOG_INFO ("Btime6StringToVals: Unable to convert '%s' to time_t", src);
 		return SD_FAILURE;
 	}
 
@@ -1608,7 +1608,7 @@ ST_RET Btime4StringToVals (char *src, ST_INT32 *numMSec)
 
 	if (w_time_t == (time_t) -1) 
 	{
-		SLOGALWAYS ("Btime4StringToVals: Unable to obtain current time");
+		SLOG_INFO ("Btime4StringToVals: Unable to obtain current time");
 		return SD_FAILURE;      /* normally should not occur */
 	}
 
@@ -1621,7 +1621,7 @@ ST_RET Btime4StringToVals (char *src, ST_INT32 *numMSec)
 
 	if (p_struct_tm == NULL) 
 	{
-		SLOGALWAYS (
+		SLOG_INFO (
 			"Btime4StringToVals: Unable to convert current time_t to struct tm");
 		return SD_FAILURE;      /* normally should not occur */
 	}
@@ -1636,7 +1636,7 @@ ST_RET Btime4StringToVals (char *src, ST_INT32 *numMSec)
 
 	if (getTsDateTime (src, &dt) != SD_SUCCESS)
 	{
-		SLOGALWAYS ("Btime4StringToVals: Unable to parse Btime4 '%s'", src);
+		SLOG_INFO ("Btime4StringToVals: Unable to parse Btime4 '%s'", src);
 		return SD_FAILURE;      /* bad parameters */
 	}
 
@@ -1644,7 +1644,7 @@ ST_RET Btime4StringToVals (char *src, ST_INT32 *numMSec)
 		||   (dt.month != curMonth)
 		||   (dt.day   != curDay  ) )
 	{
-		SLOGALWAYS ("Btime4 Conversion Error: Input date must be today's date");
+		SLOG_INFO ("Btime4 Conversion Error: Input date must be today's date");
 		return SD_FAILURE;
 	}
 
@@ -1661,7 +1661,7 @@ ST_RET Btime4StringToVals (char *src, ST_INT32 *numMSec)
 	if ( (totalMsec < 0)
 		||   (totalMsec >= (SEC_PER_DAY * MSEC_PER_SEC)) )
 	{
-		SLOGALWAYS ("Btime4 Conversion Error: Invalid millisecond count: %d", totalMsec);
+		SLOG_INFO ("Btime4 Conversion Error: Invalid millisecond count: %d", totalMsec);
 		return SD_FAILURE;
 	}
 
@@ -1948,7 +1948,7 @@ ST_RET UtcStringToVals (
 		||   (pFraction == NULL)
 		||   (pQflags   == NULL) )
 	{
-		SLOGALWAYS ("UtcStringToVals: NULL parameters");
+		SLOG_INFO ("UtcStringToVals: NULL parameters");
 		return SD_FAILURE;      /* bad parameters */
 	}
 
@@ -1958,13 +1958,13 @@ ST_RET UtcStringToVals (
 
 	if (getTsDateTime (src, &dt) != SD_SUCCESS)
 	{
-		SLOGALWAYS ("UtcStringToVals: Unable to parse time '%s'", src);
+		SLOG_INFO ("UtcStringToVals: Unable to parse time '%s'", src);
 		return SD_FAILURE;      /* bad parameters */
 	}
 
 	if (dt.zoneCode != 'Z')
 	{
-		SLOGALWAYS ("UtcStringToVals: GMT timezone code Z missing in '%s'", src);
+		SLOG_INFO ("UtcStringToVals: GMT timezone code Z missing in '%s'", src);
 		return SD_FAILURE;
 	}
 
@@ -1973,13 +1973,13 @@ ST_RET UtcStringToVals (
 	if (pflags == NULL)
 	{
 		/* quality fields were not present, assume they are all 0 */
-		/* SLOGALWAYS ("UtcStringToVals: Missing quality in '%s'", src); */
+		/* SLOG_INFO ("UtcStringToVals: Missing quality in '%s'", src); */
 
 		*pQflags = 0;
 	}
 	else if (validQualField (pflags, flagBuf) < 3)    /* not enough flags */
 	{
-		SLOGALWAYS ("UtcStringToVals: Invalid quality in '%s'", src);
+		SLOG_INFO ("UtcStringToVals: Invalid quality in '%s'", src);
 		return SD_FAILURE;
 	}
 	else
@@ -2008,7 +2008,7 @@ ST_RET UtcStringToVals (
 
 	if (w_time_t == (time_t) -1) 
 	{
-		SLOGALWAYS ("UtcStringToVals: Unable to convert '%s' to time_t", src);
+		SLOG_INFO ("UtcStringToVals: Unable to convert '%s' to time_t", src);
 		return SD_FAILURE;
 	}
 
@@ -2062,7 +2062,7 @@ ST_RET UtcValsToString (char *dest, ST_UINT32 secs, ST_UINT32 fraction,
 
 	if (!pTm)
 	{
-		SLOGALWAYS ("UtcValsToString:  conversion failure - invalid seconds.");
+		SLOG_INFO ("UtcValsToString:  conversion failure - invalid seconds.");
 		return SD_FAILURE;
 	}
 
@@ -2076,7 +2076,7 @@ ST_RET UtcValsToString (char *dest, ST_UINT32 secs, ST_UINT32 fraction,
 
 	if (!pFract)
 	{
-		SLOGALWAYS ("UtcToString - unable to convert fraction %d", fraction);
+		SLOG_INFO ("UtcToString - unable to convert fraction %d", fraction);
 		return SD_FAILURE;
 	}
 
@@ -2159,7 +2159,7 @@ ST_RET XmlStringToUtcValue (ST_CHAR *in_buf, SX_DATE_TIME *sxDateTime)
 
 	if ((in_buf == NULL) || (sxDateTime == NULL))
 	{
-		SLOGALWAYS ("XmlStringToUtcValue: NULL parameters");
+		SLOG_INFO ("XmlStringToUtcValue: NULL parameters");
 		return SD_FAILURE;      /* bad parameters */
 	}
 
@@ -2236,7 +2236,7 @@ ST_RET XmlStringToUtcValue (ST_CHAR *in_buf, SX_DATE_TIME *sxDateTime)
 
 	if (w_time_t == (time_t) -1) 
 	{
-		SLOGALWAYS ("XmlStringToUtcValue: Unable to convert time '%s'", in_buf);
+		SLOG_INFO ("XmlStringToUtcValue: Unable to convert time '%s'", in_buf);
 		return SD_FAILURE;
 	}
 
@@ -2294,7 +2294,7 @@ ST_RET UtcValueToXmlString (ST_CHAR *dest, ST_UINT destLen,
 
 	if (destLen < MAX_DATE_TIME_STR_LEN)
 	{
-		SLOGALWAYS ("ERROR: Buffer %d bytes may be too small for XML string (min=%d)",
+		SLOG_INFO ("ERROR: Buffer %d bytes may be too small for XML string (min=%d)",
 			destLen, MAX_DATE_TIME_STR_LEN);
 		return (SD_FAILURE);
 	}
@@ -2357,7 +2357,7 @@ ST_RET UtcValueToXmlString (ST_CHAR *dest, ST_UINT destLen,
 
 		if ((tzValue >= 1440) || (tzValue <= -1440))
 		{
-			SLOGALWAYS ("ERROR: UtcValueToXmlString sxDateTime.tz value %d out of range",
+			SLOG_INFO ("ERROR: UtcValueToXmlString sxDateTime.tz value %d out of range",
 				sxDateTime->tz);
 			strcat (dest, "Z");    /* assume GMT in case our retcode is ignored */
 			return SD_FAILURE;

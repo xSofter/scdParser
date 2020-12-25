@@ -25,7 +25,7 @@
 #include "sysincs.h"
 #include "mem_chk.h"
 #include "time_str.h"
-//#include "str_util.h"
+#include "str_util.h"
 #include "sx_defs.h"
 #include "slog.h"
 

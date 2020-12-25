@@ -1088,7 +1088,7 @@ SCL_ACCESSPOINT *scl_accesspoint_add (SCL_INFO *scl_info)
 	/* Add to front of list.	*/
 	SCL_IED* ied = list_find_last((DBL_LNK *)scl_info->lIEDHead);
 	if (!ied) {
-		SLOG_ERROR ("Null IED");
+		SLOG_ERROR ("Cannot find last IED");
 		return (scl_acpoint);
 	}
 	list_add_last (&ied->accessPointHead, scl_acpoint);

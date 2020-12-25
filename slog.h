@@ -1,6 +1,6 @@
 /*
  * @Date: 2020-11-16 08:45
- * @LastEditTime: 2020-12-23 10:52
+ * @LastEditTime: 2020-12-25 09:41
  * @LastEditors: tangkai3
  * @Description: 
  */
@@ -75,7 +75,7 @@ ST_VOID userLog (SD_CONST ST_CHAR *SD_CONST format, ...);
 /************************************************************************/
 #if defined(DEBUG_SISCO)
 /************************************************************************/
-#define SLOGALWAYS slogHead(SX_LOG_ALWAY,thisFileName,__FUNCTION__, __LINE__);slog
+#define SLOG_INFO slogHead(SX_LOG_ALWAY,thisFileName,__FUNCTION__, __LINE__);slog
 #define SLOG_DEBUG slogHead(SX_LOG_DEBUG,thisFileName,__FUNCTION__, __LINE__);slog
 #define SLOG_WARN slogHead(SX_LOG_WARN,thisFileName,__FUNCTION__, __LINE__);slog
 #define SLOG_ERROR  slogHead(SX_LOG_ERROR,thisFileName,__FUNCTION__, __LINE__);slog
@@ -83,7 +83,7 @@ ST_VOID userLog (SD_CONST ST_CHAR *SD_CONST format, ...);
 /************************************************************************/
 #else	/* #if defined(DEBUG_SISCO) */
 /************************************************************************/
-#define SLOGALWAYS 
+#define SLOG_INFO 
 #define SLOG_DEBUG 
 #define SLOG_WARN 
 #define SLOG_ERROR

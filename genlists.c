@@ -53,13 +53,13 @@ ST_RET list_unlink (DBL_LNK **list_head_ptr, DBL_LNK *node_ptr)
 #ifdef DEBUG_SISCO
 	if (*list_head_ptr == NULL) 
 	{
-		SLOGALWAYS ("GENLIST: ATTEMPT TO UNLINK A NODE FROM A NULL LIST");
+		SLOG_INFO ("GENLIST: ATTEMPT TO UNLINK A NODE FROM A NULL LIST");
 		return (SD_FAILURE);
 	}
 
 	if (node_ptr == NULL)
 	{
-		SLOGALWAYS ("GENLIST: ATTEMPT TO UNLINK A NULL ADDRESS FROM A LIST");
+		SLOG_INFO ("GENLIST: ATTEMPT TO UNLINK A NULL ADDRESS FROM A LIST");
 		return (SD_FAILURE);
 	}
 
@@ -67,7 +67,7 @@ ST_RET list_unlink (DBL_LNK **list_head_ptr, DBL_LNK *node_ptr)
 	{
 		if (list_find_node (*list_head_ptr, node_ptr) == SD_FAILURE)
 		{
-			SLOGALWAYS ("GENLIST: NODE NOT FOUND IN LIST");
+			SLOG_INFO ("GENLIST: NODE NOT FOUND IN LIST");
 			return (SD_FAILURE);
 		}
 	}
@@ -105,7 +105,7 @@ ST_RET list_add_first (DBL_LNK **list_head_ptr, DBL_LNK *node_ptr)
 #ifdef DEBUG_SISCO
 	if (node_ptr == NULL)
 	{
-		SLOGALWAYS ("GENLIST: ATTEMPT TO ADD A NULL ADDRESS TO A LIST");
+		SLOG_INFO ("GENLIST: ATTEMPT TO ADD A NULL ADDRESS TO A LIST");
 		return (SD_FAILURE);
 	}
 #endif
@@ -319,11 +319,11 @@ ST_RET list_add_node_after (DBL_LNK *cur_node, DBL_LNK *new_node)
 	ret_val = SD_FAILURE;
 	if (new_node == NULL)
 	{
-		SLOGALWAYS ("GENLIST: ATTEMPT TO ADD A NULL ADDRESS TO A LIST");
+		SLOG_INFO ("GENLIST: ATTEMPT TO ADD A NULL ADDRESS TO A LIST");
 	}
 	else if (cur_node == NULL)
 	{
-		SLOGALWAYS ("GENLIST: ATTEMPT TO ADD A NODE TO A NULL LIST");
+		SLOG_INFO ("GENLIST: ATTEMPT TO ADD A NODE TO A NULL LIST");
 	}
 	else			/* this is a good node and good predecessor	*/
 	{
@@ -355,11 +355,11 @@ ST_VOID *list_get_next (DBL_LNK *list_head_ptr, DBL_LNK *cur_node)
 
 	if (list_head_ptr == NULL)
 	{
-		SLOGALWAYS ("GENLIST: ATTEMPT TO REFERENCE A NULL LIST");
+		SLOG_INFO ("GENLIST: ATTEMPT TO REFERENCE A NULL LIST");
 	}
 	else if (cur_node == NULL)
 	{
-		SLOGALWAYS ("GENLIST: ATTEMPT TO REFERENCE THROUGH A NULL PTR");
+		SLOG_INFO ("GENLIST: ATTEMPT TO REFERENCE THROUGH A NULL PTR");
 	}
 	else if (cur_node->next != list_head_ptr)
 	{
@@ -405,11 +405,11 @@ ST_VOID *list_find_prev (DBL_LNK *list_head_ptr, DBL_LNK *cur_node)
 
 	if (list_head_ptr == NULL)
 	{
-		SLOGALWAYS ("GENLIST: ATTEMPT TO REFERENCE A NULL LIST");
+		SLOG_INFO ("GENLIST: ATTEMPT TO REFERENCE A NULL LIST");
 	}
 	else if (cur_node == NULL)
 	{
-		SLOGALWAYS ("GENLIST: ATTEMPT TO REFERENCE THROUGH A NULL PTR");
+		SLOG_INFO ("GENLIST: ATTEMPT TO REFERENCE THROUGH A NULL PTR");
 	}
 	else if (cur_node != list_head_ptr)
 	{
