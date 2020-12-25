@@ -62,4 +62,3 @@ ICD/CID xml file parse for IEC61850 protocol
 1 支持模型文件解析结果保存一份在用户日志中  
 2 删除解析ix的内容,目前不再需要  
 3 解决解析dastaSet过程中,对某些SDI类型的节点,无法解析短地址的问题,修改方法改为根据LN类型,判断doiname和fc类型相匹配的DAI  
-4 
