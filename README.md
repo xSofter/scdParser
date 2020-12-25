@@ -57,3 +57,9 @@ ICD/CID xml file parse for IEC61850 protocol
 4 支持查看scl文件的IED信息,crc和全站CRC信息  
 5 API的异常流程增加日志和指针保护处理  
 6 支持解析多个IED的功能  
+
+## 2020-12-25 
+1 支持模型文件解析结果保存一份在用户日志中  
+2 删除解析ix的内容,目前不再需要  
+3 解决解析dastaSet过程中,对某些SDI类型的节点,无法解析短地址的问题,修改方法改为根据LN类型,判断doiname和fc类型相匹配的DAI  
+4 

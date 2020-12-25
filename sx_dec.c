@@ -27,8 +27,9 @@
 #include "mem_chk.h"
 #include "scl.h"
 #include "sx_defs.h"
-//#include "time_str.h"
+#include "time_str.h"
 #include "str_util.h"
+#include "sclPub.h"
 #include "slog.h"
 
 
@@ -2556,25 +2557,40 @@ ST_VOID sx_get_daName_combined(ST_CHAR* srcDoName, const ST_CHAR* delims, ST_CHA
 	//do not use original do str
 	strncpy_safe(srcStr, srcDoName, MAX_IDENT_LEN);
 	ST_CHAR* next = NULL;
-	
-	next = strtok(srcStr, delims);
+	ST_CHAR* savePtr = NULL;
+	next = strtok_r(srcStr, delims, &savePtr);
 	if (next) {
-		// printf("doiName %s\n",next);
 		strncpy_safe(doiName, next, MAX_IDENT_LEN);
 	}
-	next = strtok(NULL, delims);
+	next = strtok_r(NULL, delims, &savePtr);
 	if (next) {
 		strncpy_safe(sdiName, next, MAX_IDENT_LEN);
 	}
+	
 	return ;
 }
 
+/**
+ * @Description: 根据DAname找到所在的da指针位置
+ */
+SCL_DAI* sx_get_daibyName(ST_CHAR* daName, SCL_DAI *daiList) {
+	SCL_DAI* dai;
+	for (dai = daiList; dai != NULL; dai = (SCL_DAI *)list_get_next(daiList, dai)) {
+		//如果FCDA存在daName但不匹配,精确查找
+		if (strcasecmp(daName, dai->name))  continue;
+		
+		return dai;			
+	}
+
+	return NULL;
+}
 
 /************************************************************
 @ Description: 根据FCDA的当前内容,从LN中查找stVal,LN由FCDA去查找
 缩小查找范围,限制在同一个LD内
+查找依据: 根据LN类型,判断doiname和fc类型相匹配的DAI
 **************************************************************/
-ST_VOID sx_get_stVal_by_fcda(SCL_LD* scl_ld, SCL_FCDA* fcda) {
+ST_VOID sx_get_stVal_by_fcda(SCL_INFO *sclInfo, SCL_LD* scl_ld, SCL_FCDA* fcda) {
 	if (!scl_ld->lnHead || !scl_ld) {
 		SLOG_ERROR("Error scl_ld or scl_lnHead pointer");
 		return;
@@ -2587,8 +2603,8 @@ ST_VOID sx_get_stVal_by_fcda(SCL_LD* scl_ld, SCL_FCDA* fcda) {
 	
 	SCL_LN* scl_ln = NULL;
 	// const ST_CHAR fcType[] = {"ST", "SP", "MX", "SG"};
-	ST_CHAR sdiName[MAX_IDENT_LEN + 1];
-	ST_CHAR doiName[MAX_IDENT_LEN + 1];
+	ST_CHAR sdiName[MAX_IDENT_LEN + 1] = {0};
+	ST_CHAR doiName[MAX_IDENT_LEN + 1] = {0};
 	//根据FCDA找到其LN
 	for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN * )list_get_next(scl_ld->lnHead, scl_ln)) {
 		if (strcmpi(fcda->ldInst, scl_ld->inst)) continue;
@@ -2596,75 +2612,87 @@ ST_VOID sx_get_stVal_by_fcda(SCL_LD* scl_ld, SCL_FCDA* fcda) {
 			!strcmpi(fcda->lnClass, scl_ln->lnClass) && 
 			!strcmpi(fcda->lnInst, scl_ln->inst)) 
 		{
-			if (strcmpi(fcda->prefix, scl_ln->prefix) && (strlen(fcda->prefix) > 0)) //存在prefix,但不相等,也退出
-			{
-				continue;
+			if (strlen(fcda->prefix)) {
+				if (strcasecmp(fcda->prefix, scl_ln->prefix)) continue;//存在prefix,但不相等,也退出
 			}
+			else{
+				//没有prefix的时候,保证该lnType的唯一性
+				SCL_DOI* doi;
+				ST_BOOLEAN found = SD_FALSE;
+				if (strstr(fcda->doName, ".") != NULL) {
+					sx_get_daName_combined(fcda->doName, ".", doiName, sdiName);
+				} else {
+					strcpy(doiName, fcda->doName);
+				}	
+				for (doi = scl_ln->doiHead; doi != NULL; doi = (SCL_DOI *)list_get_next(scl_ln->doiHead, doi))
+				{
+					if (strcasecmp(doi->name, doiName)) continue;
+					found |= SD_TRUE;
+				}
+
+				if (!found) continue;
+			}
+			
 			//拷贝ln类型
 			strncpy_safe(fcda->lnRefType, scl_ln->lnType, MAX_IDENT_LEN);
 			SCL_DOI* doi;
 			SCL_DAI* dai;
 			SCL_SDI* sdi;
+			
+			ST_CHAR* doType  = sclGetDOTypeByDoName(sclInfo, scl_ln->lnType, fcda->doName);	
+			ST_CHAR* daName = sclGetDaNameByFcName(sclInfo, doType, fcda->fc);
+			if (!daName) 
+			{
+				SLOG_ERROR("Cannot find daName. lnType=%s fcda->doName:%s doType=%s fc:%s daName:%s", scl_ln->lnType, fcda->doName, doType, fcda->fc, daName);
+				return;
+			}
+				
 			//寻找短地址
 			for (doi = scl_ln->doiHead; doi != NULL; doi = (SCL_DOI *)list_get_next(scl_ln->doiHead, doi)) {
-				//单独拎出MX
-				if (strcmpi(fcda->fc, "MX") == 0) {//MX 类里面 存在组合的情况doName="PhV.phsA"
-					if (strstr(fcda->doName, ".") != NULL){	
-						sx_get_daName_combined(fcda->doName, ".", doiName, sdiName);
-						if (strcmpi(doiName, doi->name)) continue;	//跳过doi不匹配的地方
-						strncpy_safe(fcda->doRefDesc, doi->desc, MAX_IDENT_LEN);
-						for (sdi = doi->sdiHead; sdi != NULL; sdi = (SCL_SDI *)list_get_next(doi->sdiHead, sdi)) {
-							if (strcmpi(sdiName, sdi->name)) continue;	//跳过sdi不匹配的地方
-							//从命中的SDI中找短地址
-							for (dai = sdi->sdaiHead; dai != NULL; dai = (SCL_DAI *)list_get_next(sdi->sdaiHead, dai)) {
-								// SLOG_DEBUG (" doi->name %s sdiName %s dai->name %s dai->sAddr %s", doi->name, sdiName ,dai->name, dai->sAddr);
-								if (!strlen(dai->sAddr)) continue;
+				//如果存在doName = PPV.phsAB 的情况
+				if (strstr(fcda->doName, ".") != NULL) {
+					sx_get_daName_combined(fcda->doName, ".", doiName, sdiName);
+					if (strcasecmp(doiName, doi->name)) continue;	//跳过doi不匹配的地方
+					for (sdi = doi->sdiHead; sdi != NULL; sdi = (SCL_SDI *)list_get_next(doi->sdiHead, sdi)) {
+						if (strcasecmp(sdiName, sdi->name)) continue;	//跳过doi不匹配的地方
+						for(dai = sdi->sdaiHead; dai != NULL; dai = (SCL_DAI *)list_get_next(sdi->sdaiHead, dai)) {
+							ST_CHAR daiName[MAX_IDENT_LEN + 1] = {0};
+							ST_CHAR notuse[MAX_IDENT_LEN + 1] = {0};	//must by malloced
+							sx_get_daName_combined(dai->flattened, "$", notuse, daiName);
+							
+							if (strlen(daiName)) {
+								if (strcasecmp(daiName, daName)) continue;
 								strncpy_safe(fcda->doRefsAddr, dai->sAddr, MAX_IDENT_LEN);
-								break;
 							}
-						}
-					}
-					else 
-					{
-						if (strcmpi(fcda->doName, doi->name)) continue;	//跳过不匹配的DOName
-						// SLOG_DEBUG("DOI name: %s", doi->name);
-						strncpy_safe(fcda->doRefDesc, doi->desc, MAX_IDENT_LEN);
-						for (sdi = doi->sdiHead; sdi != NULL; sdi = (SCL_SDI *)list_get_next(doi->sdiHead, sdi)) {
-							// SLOG_DEBUG("    SDI name: %s ", sdi->name);							
-							for (dai = sdi->sdaiHead; dai != NULL; dai = (SCL_DAI *)list_get_next(sdi->sdaiHead, dai)) {
-								// SLOG_DEBUG("      DAI name: %s sAddr %s", dai->name, dai->sAddr);
-								if (!strlen(dai->sAddr)) continue;
-								strncpy_safe(fcda->doRefsAddr, dai->sAddr, MAX_IDENT_LEN);
-								break;
-							}
+							return;
 						}
 						
 					}
-					//MX结束
-					continue;
 				} 
 
-				if (strcmpi(fcda->doName, doi->name)) continue;	//非测量类可以比较DoName
 				
+				if (strcasecmp(fcda->doName, doi->name)) continue;	//非测量类可以比较DoName
+
 				strncpy_safe(fcda->doRefDesc, doi->desc, MAX_IDENT_LEN);
-				for (dai = doi->daiHead; dai != NULL; dai = (SCL_DAI *)list_get_next(doi->daiHead, dai)) {
-					//根据FCDA的约束类型FC功能限制分类,判断如何寻找sAddr
-					// if (!strcmpi(fcda->fc, "ST")) {
-					// 	//如果存在da
-					// 	if (strcmpi(fcda->daName, dai->name) == 0 && (strlen(fcda->daName) > 0)) {
-					// 		if (!strlen(dai->sAddr)) continue;
-					// 		strncpy_safe(fcda->doRefsAddr, dai->sAddr, MAX_IDENT_LEN);
-					// 		break;
-					// 	}
-					// }
-					//如果FCDA存在daName但不匹配,精确查找
-					if (strcmpi(fcda->daName, dai->name) && strlen(fcda->daName) > 0 )  continue;
+				//存在一级SDI
+				for (sdi = doi->sdiHead; sdi != NULL; sdi = (SCL_SDI *)list_get_next(doi->sdiHead, sdi)) {
+					if (strcasecmp(daName, sdi->name))  continue;
 					//如果FCDA没有写daname
-					if (!strlen(dai->sAddr)) continue;	
-					strncpy_safe(fcda->doRefsAddr, dai->sAddr, MAX_IDENT_LEN);
-					break;			
+					for (dai = sdi->sdaiHead; dai != NULL; dai = (SCL_DAI *)list_get_next(sdi->sdaiHead, dai)) {
+						if (!strlen(dai->sAddr)) continue;	
+						strncpy_safe(fcda->doRefsAddr, dai->sAddr, MAX_IDENT_LEN);
+						return;			
+					}					
 				}
-				
+
+				dai = sx_get_daibyName(daName, doi->daiHead);
+				if (!dai) {
+					SLOG_ERROR("Cannot found dai by daName=%s lnType=%s doName=%s doType=%s fc=%s ", daName, scl_ln->lnType, fcda->doName, doType, fcda->fc);
+					return;
+				}
+
+				strncpy_safe(fcda->doRefsAddr, dai->sAddr, MAX_IDENT_LEN);
+				return;
 			}
 		}
 	}

@@ -1,6 +1,6 @@
 /*
  * @Date: 2020-12-15 11:18
- * @LastEditTime: 2020-12-22 14:11
+ * @LastEditTime: 2020-12-23 09:00
  * @LastEditors: tangkai3
  * @Description: 
  */
@@ -24,9 +24,9 @@ enum table_id
 	IEC_IED_URCB,
 	IEC_IED_BRCB,
 
-	IEC_IED_STRUCT_SCD,
-	IEC_IED_COMMU_SCD,
-	IEC_IED_DATASET_SCD,
+	// IEC_IED_STRUCT_SCD,
+	// IEC_IED_COMMU_SCD,
+	// IEC_IED_DATASET_SCD,
     
     NEW_TABLE_MAX_NUM
 };

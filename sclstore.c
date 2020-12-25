@@ -488,7 +488,7 @@ SCL_SDI *scl_sdi_sdi_add(SCL_INFO *scl_info) {
 		if (!curSdi) {
 			SLOG_ERROR ("Cannot find SDI from DOI");
 			return (scl_sdi);
-		}		
+		}	
 		//分两种情况, case DAI在SDI下级
 		
 		/* DAI 的头结点指向本级SDI*/
@@ -1124,7 +1124,7 @@ ST_VOID scl_get_dataSet_sAddr (SCL_INFO *sclInfo) {
 						// SLOG_DEBUG("    <DataSet: name %s Desc %s>", ds->name, ds->desc); //
 						for(fcda = ds->fcdaHead; fcda != NULL; fcda = (SCL_FCDA*)list_get_next(ds->fcdaHead, fcda)) 
 						{
-							sx_get_stVal_by_fcda(scl_ld, fcda);													
+							sx_get_stVal_by_fcda(sclInfo, scl_ld, fcda);													
 						}
 					}
 				}

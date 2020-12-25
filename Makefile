@@ -30,7 +30,6 @@ INSTALL_PROGRAM = install -m 755 -p
 INSTALL_DIR   = cp -f -R
 QINSTALL      = /usr/local/Qt5.12.1/bin/qmake -install qinstall
 QINSTALL_PROGRAM = /usr/local/Qt5.12.1/bin/qmake -install qinstall -exe
-DEL_FILE      = rm -f
 SYMLINK       = ln -f -s
 DEL_DIR       = rmdir
 MOVE          = mv -f
@@ -549,7 +548,7 @@ distdir: FORCE
 clean: compiler_clean 
 	-$(DEL_FILE) $(OBJECTS)
 	-$(DEL_FILE) *~ core *.core
-
+	-$(DEL_FILE) $(TARGET)
 
 distclean: clean 
 	-$(DEL_FILE) $(TARGET) 

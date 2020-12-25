@@ -46,13 +46,14 @@
 #endif
 #include <sys/time.h>
 static LOG_CTRL g_lc;
-ST_INT g_logType;
+static LOG_CTRL g_usrLog;
+ST_UINT32 g_logType;
 ST_CHAR* g_sourceFile;
 ST_INT g_lineNum;
 ST_CHAR* g_funName;
 
 #ifdef DEBUG_SISCO
-SD_CONST static ST_CHAR *SD_CONST thisFileName = __FILE__;
+static SD_CONST ST_CHAR * thisFileName = __FILE__;
 #endif
 
 /************************************************************************/
@@ -105,7 +106,61 @@ ST_VOID slog (SD_CONST ST_CHAR *SD_CONST format, ...)
 	va_end(ap);
 }
 
+ST_VOID userLog (SD_CONST ST_CHAR *SD_CONST format, ...)
+{
+	
+	ST_INT 	count;
+	va_list	ap;
+	ST_CHAR msg_buf[1024] = {0};
+	ST_CHAR tmpBuf[128];
+	va_start (ap, format);		
+	g_usrLog.max_msg_size = 1024;
+	if (format == NULL)
+	{
+		/* make buf a zero length string just in case			*/
+		count = 0;
+		msg_buf[0] = 0;
+	} else {
+#if defined(_WIN32)
+		count = _vsnprintf(msg_buf,1024,format,ap);
+#elif  defined(__QNX__) && defined(__WATCOMC__)
+		count = _vbprintf(msg_buf,1024,format,ap);
+#elif defined(_AIX) || defined(sun) || defined(_hpux) || defined(__alpha) || defined(linux)
+		count = vsnprintf(msg_buf,1024,format,ap);
+#else  /* other systems: VXWORKS, ... 					*/
+		count = vsprintf (msg_buf, format, ap);
+#endif
+		msg_buf[g_usrLog.max_msg_size-1] = 0; 	/* terminate the buffer, Win and UNIX 	*/
+#if defined(_WIN32)
+		if (count < 0)
+		{
+			sprintf (tmpBuf,"*** LOG ERROR: LOG BUFFER OVERRUN (g_usrLog.max_msg_size=%d bytes) or _vsnprintf function error",
+				g_usrLog.max_msg_size);
+			strncpy_safe (msg_buf, tmpBuf, g_usrLog.max_msg_size-1);
+			count = strlen (msg_buf);		/* count = len of this log message	*/
+		}
+#else  /* !defined(_WIN32) */
+		if (count < 0)
+		{
+			sprintf (tmpBuf,"*** LOG ERROR: _vbprintf(QNX), vsnprintf(UNIX,LINUX), or vsprintf(other sys) function failed");
+			strncpy_safe (msg_buf, tmpBuf, g_usrLog.max_msg_size-1);
+			count = strlen (msg_buf);		/* count = len of this log message	*/
+		}
+		else if (count >= g_usrLog.max_msg_size)
+		{
+			sprintf (tmpBuf,"*** LOG ERROR: LOG BUFFER OVERRUN: message len=%d bytes (g_usrLog.max_msg_size=%d bytes)",
+				count, g_usrLog.max_msg_size);
+			strncpy_safe (msg_buf, tmpBuf, g_usrLog.max_msg_size-1);
+			count = strlen (msg_buf);		/* set count to len of this log message */
+		}
+#endif  /* !defined(_WIN32) */
+		count++;
+	}
+	
+	fprintf (g_usrLog.fp,"%s\n", msg_buf);
 
+	va_end(ap);	
+}
 
 /************************************************************************/
 /*                               doSlog                                 */
@@ -235,6 +290,7 @@ ST_VOID getCurrentTime(SD_CONST ST_CHAR *SD_CONST currTime) {
 
 ST_VOID slogCallStack (LOG_CTRL *lc, SD_CONST ST_CHAR *txt)
 {
+	lc = lc;
 #if !defined(CODAN)
 #if defined(MSDOS) && !defined(TC)
 	static ST_UINT32 ptr_to_abs (ST_VOID *ptr);
@@ -294,7 +350,7 @@ ST_VOID slogCallStack (LOG_CTRL *lc, SD_CONST ST_CHAR *txt)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-ST_RET slog_start (SD_CONST ST_UINT32 logCtrl, SD_CONST ST_UINT32 logType, SD_CONST ST_CHAR *sFile)
+ST_RET slog_start (SD_CONST ST_UINT32 logCtrl, SD_CONST ST_UINT32 logType, SD_CONST ST_CHAR *sFile, SD_CONST ST_CHAR *sUsrLog)
 {
 	g_lc.logCtrl=logCtrl;
 	g_lc.logType=logType;
@@ -304,6 +360,15 @@ ST_RET slog_start (SD_CONST ST_UINT32 logCtrl, SD_CONST ST_UINT32 logType, SD_CO
 		if ( (g_lc.fp=fopen(sFile,"w")) == NULL)
 		{
 			printf("Failed to open %s\n", sFile);
+			exit(-1);
+		}
+	}
+
+	if (sUsrLog)
+	{
+		if ( (g_usrLog.fp=fopen(sUsrLog,"w")) == NULL)
+		{
+			printf("Failed to open %s\n", sUsrLog);
 			exit(-1);
 		}
 	}
@@ -320,6 +385,12 @@ ST_RET slog_end ()
 	{
 		fclose(g_lc.fp);
 		g_lc.fp=0;
+	}
+
+	//保存用户日志
+	if (g_usrLog.fp){
+		fclose(g_usrLog.fp);
+		g_usrLog.fp=0;
 	}
 	return SD_SUCCESS;
 }

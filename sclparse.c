@@ -1536,7 +1536,7 @@ static ST_VOID _LDevice_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		if (strlen(sclDecCtrl->iedName) + strlen(scl_ld->inst) <= MAX_IDENT_LEN)
 		{
 			strcpy (scl_ld->domName, sclDecCtrl->iedName);	/* construct domain name*/
-
+			strcat (scl_ld->domName, scl_ld->inst);
 			strcpy(scl_ld->apName,sclDecCtrl->accessPointName);
 		}
 		else
@@ -2369,7 +2369,7 @@ static ST_VOID _SDI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		/* end required attributes */
 
 		/* Continue creation of flattened name 地址嵌套*/
-		if (construct_flattened (sclDecCtrl->flattened, sizeof(sclDecCtrl->flattened), name, ix)
+		if (construct_flattened (sclDecCtrl->flattened, sizeof(sclDecCtrl->flattened), name, NULL)
 			!= SD_SUCCESS)
 		{	/* error already logged.	*/
 			scl_stop_parsing (sxDecCtrl, "_SDI_SEFun", SX_USER_ERROR);
@@ -2516,7 +2516,7 @@ static ST_VOID _SDI_SDI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		/* end required attributes */
 
 		/* Continue creation of flattened name 地址嵌套*/
-		if (construct_flattened (sclDecCtrl->flattened, sizeof(sclDecCtrl->flattened), name, ix)
+		if (construct_flattened (sclDecCtrl->flattened, sizeof(sclDecCtrl->flattened), name, NULL)
 			!= SD_SUCCESS)
 		{	/* error already logged.	*/
 			scl_stop_parsing (sxDecCtrl, "_SDI_SDI_SEFun", SX_USER_ERROR);
@@ -2594,7 +2594,7 @@ static ST_VOID _SDI_DAI_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		/* end required attributes */
 
 		/* Continue creation of flattened name */
-		if (construct_flattened (sclDecCtrl->flattened, sizeof(sclDecCtrl->flattened), name, ix)
+		if (construct_flattened (sclDecCtrl->flattened, sizeof(sclDecCtrl->flattened), name, NULL)
 			!= SD_SUCCESS)
 		{	/* error already logged.	*/
 			scl_stop_parsing (sxDecCtrl, "_SDI_DAI_SEFun", SX_USER_ERROR);

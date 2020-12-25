@@ -437,6 +437,7 @@ typedef enum {
 		ST_CHAR *desc;			/* description (optional)*/
 		ST_CHAR *name;			/* name (optional)*/
 		/* constructed from "name" & "ix"*/
+		ST_CHAR ix[MAX_VALKIND_LEN+1];	/* 无符号整形,可选 最多5位*/
 		/* from DOI, SDI, & DAI		*/
 		ST_CHAR *Val;				/* attribute value text		*/
 		/* allocate appropriate size buffer*/
@@ -997,7 +998,7 @@ typedef enum {
 	/************************************************************************/
 	SCL_GSE *scl_gse_find (SCL_INFO *scl_info, SCL_LD *scl_ld, SCL_GCB *scl_gcb);
 	ST_CHAR *scl_rptCtlget(ST_UINT8* rptPtr, SD_CONST ST_CHAR *field);
-	ST_VOID sx_get_stVal_by_fcda(SCL_LD* scl_ld, SCL_FCDA* fcda);
+	ST_VOID sx_get_stVal_by_fcda(SCL_INFO *sclInfo, SCL_LD* scl_ld, SCL_FCDA* fcda);
 	ST_VOID scl_get_dataSet_sAddr (SCL_INFO *sclInfo);
 #ifdef __cplusplus
 }

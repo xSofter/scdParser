@@ -1,13 +1,14 @@
 /*
  * @Date: 2020-12-07 09:25
- * @LastEditTime: 2020-12-22 19:20
+ * @LastEditTime: 2020-12-24 17:37
  * @LastEditors: tangkai3
  * @Description: 模块对外接口函数
  */
 
 #include "sclPub.h"
 
-#define LOG_FILE_NAME "scdpase.log"
+#define DBG_LOG_FILE_NAME "scdParse.log"
+#define USR_LOG_FILE_NAME "scdRes.txt"
 
 #ifdef DEBUG_SISCO
 static const ST_CHAR *thisFileName = __FILE__;
@@ -23,7 +24,7 @@ ST_RET load_scd_file(const char* fileName, SCL_INFO* sclInfo)
 	ST_CHAR *accessPointName = "S1";
 	ST_RET rc = 0;
 
-	slog_start(SX_LOG_ALWAY, LOG_FILE_EN, LOG_FILE_NAME); //SX_LOG_ERROR  SX_LOG_ALWAY
+	slog_start(SX_LOG_ALWAY, LOG_FILE_EN, DBG_LOG_FILE_NAME, USR_LOG_FILE_NAME); //SX_LOG_ERROR  SX_LOG_ALWAY
 	rc = scl_parse(fileName, iedName, accessPointName, sclInfo);
 	
 	return rc;
@@ -64,6 +65,7 @@ ST_RET sclGetDOInfoByLnType(SCL_INFO* sclInfo, const char* lnType, SCL_DO** lnIn
 	}
 
 	if (lnodeType->doHead && found) {
+		// SLOG_DEBUG("lnodeType->doHead %s %s", lnodeType->doHead->name, lnodeType->doHead->desc);
 		*lnInfo = lnodeType->doHead;
 		return 0;
 	}
@@ -171,18 +173,73 @@ ST_RET sclGetEnumValByDaType(SCL_INFO* sclInfo, const char* DaType, SCL_ENUMVAL*
 ST_CHAR* sclGetDOTypeByDoName(SCL_INFO* sclInfo, const char* lnType, const char* doName) {
 	SCL_DO* doType = NULL;
 	SCL_DO* pDo;
+	SCL_DO* pSdo;
+	ST_CHAR sdoName[MAX_IDENT_LEN + 1] = {0};
+	ST_CHAR doiName[MAX_IDENT_LEN + 1] = {0};
+	
 	if (sclGetDOInfoByLnType(sclInfo, lnType, &doType)) {
+		SLOG_ERROR ("Can not find doType by lnType %s", lnType);
 		return NULL;
 	}
 
-	for (pDo = doType; pDo != NULL; pDo = (SCL_DO *)list_get_next(doType, pDo)) {
-		//如果匹配到DO
-		if (strcasecmp(pDo->name, doName)) continue;
-		return pDo->type;
-	}	
+	ST_BOOLEAN found = SD_FALSE;
+	if (strstr(doName, ".") != NULL) {
+		sx_get_daName_combined(doName, ".", doiName, sdoName);
+		// SLOG_DEBUG ("doName %s doiName %s sdoName %s",doName, doiName, sdoName);
+		for (pDo = doType; pDo != NULL; pDo = (SCL_DO *)list_get_next(doType, pDo)) {
+			//如果匹配到DO
+			if (strcasecmp(pDo->name, doiName)) continue;
+			found |= SD_TRUE;
+			break;
+		}		
+
+		if (found) {
+			SCL_DOTYPE* doTypeHead;
+			for (doTypeHead = sclInfo->doTypeHead; doTypeHead != NULL; doTypeHead = (SCL_DOTYPE *)list_get_next(sclInfo->doTypeHead, doTypeHead)) {
+				if (strcasecmp(doTypeHead->id, pDo->type)) continue;
+				//找到dotype
+				for (pSdo = doTypeHead->sdoHead; pSdo != NULL; pSdo = (SCL_DO* )list_get_next(doTypeHead->sdoHead, pSdo)) {
+					if (strcasecmp(pSdo->name, sdoName)) continue;
+					return pSdo->type;
+				}
+			}
+		}
+	} 
+	else
+	{
+		strncpy_safe(doiName, doName, MAX_IDENT_LEN);
+		for (pDo = doType; pDo != NULL; pDo = (SCL_DO *)list_get_next(doType, pDo)) {
+			//如果匹配到DO
+			if (strcasecmp(pDo->name, doiName)) continue;
+			return pDo->type;
+		}		
+	}
+
+	
+	SLOG_ERROR ("Can not find doType by doName %s doType %s", doName, doType->name);
 	return NULL;
 }
 
+/**
+ * @Description: sclGetDaNameByFcName 通过DoTYpeid 和 fc类型,精准匹配daiName
+ */
+ST_CHAR* sclGetDaNameByFcName(SCL_INFO* sclInfo, const char* doType, const char* fcName) {
+	SCL_DA* pDa = NULL;
+	SCL_DOTYPE* pDoType;
+	if (!doType || strlen(doType) == 0) return NULL;
+	if (!fcName || strlen(fcName) == 0) return NULL;
+	if (!sclInfo->doTypeHead) return NULL;
+
+	for (pDoType = sclInfo->doTypeHead; pDoType != NULL; pDoType = (SCL_DOTYPE *)list_get_next(sclInfo->doTypeHead, pDoType)) {
+		//如果匹配到DO
+		if (strcasecmp(pDoType->id, doType)) continue;
+		for (pDa = pDoType->daHead; pDa != NULL; pDa = (SCL_DA *)list_get_next(pDoType->daHead, pDa)) {
+			if (strcasecmp(pDa->fc, fcName)) continue;
+			return pDa->name;
+		}
+	}	
+	return NULL;
+}
 /**
  * @Description: 根据SDI的name找到DA的配置
  */
@@ -232,7 +289,8 @@ ST_CHAR* sclGetBdaTypeByDaTypeId(SCL_INFO* sclInfo, const char* daTypeId, const 
 	for (daTypeHead = sclInfo->daTypeHead; daTypeHead != NULL; daTypeHead = (SCL_DATYPE *)list_get_next(sclInfo->daTypeHead, daTypeHead)) {
 		if (strcasecmp(daTypeHead->id, daTypeId) == 0) {
 			for (bda = daTypeHead->bdaHead; bda != NULL; bda = (SCL_BDA *)list_get_next (daTypeHead->bdaHead, bda)) {
-				if (strcasecmp (bda->name, bda->name) == 0) {
+				// SLOG_DEBUG("bda->name %s", bda->name);
+				if (strcasecmp (bda->name, bdaName) == 0) {
 					//如果是struct类型
 					if (strlen(bda->type) && strcasecmp(bda->bType, "struct") == 0) {
 						return bda->type;
@@ -271,7 +329,8 @@ ST_RET sclGetDaiTypeByDaiflatName(SCL_INFO* sclInfo, const char* doType, const c
 		/* get next token */
 		next = strtok (NULL, "$");
 	}
-
+	ST_UINT8 i;
+	
 	SCL_DOTYPE *pDoType;
 	SCL_DO* pSdoList;
 	SCL_DA* pDaList;
@@ -286,17 +345,17 @@ ST_RET sclGetDaiTypeByDaiflatName(SCL_INFO* sclInfo, const char* doType, const c
 				SCL_DA* da = sclGetDaTypeBySdiName(sclInfo, pSdoList->type, daName[1]);
 				if (!da->type || !da) {
 					SLOG_ERROR("sclGetDaTypeBySdiName not found doType %s dAname %s", pSdoList->type, daName[1]);
-					continue;
+					return -3;
 				}
 				//超过两层,递归遍历
 				if (count > 2) {
-					ST_UINT8 i;
 					pBdaType = da->type;
 					for (i = 2; i < count; i++){
-						pBdaType = sclGetBdaTypeByDaTypeId(sclInfo, pBdaType, daName[i-1]);
+						pBdaType = sclGetBdaTypeByDaTypeId(sclInfo, pBdaType, daName[i]);
 						if (!pBdaType) {
-							SLOG_ERROR("sclGetBdaTypeByDaTypeId not found i = %d pBdaType %s name %s", i, pBdaType, daName[i-1]);
-							continue;
+							SLOG_ERROR("sclGetBdaTypeByDaTypeId not found doType %s da->type %s pDaName %s daName[%d]=%s count %d", 
+								doType, da->type, da->name, i, daName[i], count);
+							return -3;
 						}
 					}
 				}else {
@@ -313,14 +372,19 @@ ST_RET sclGetDaiTypeByDaiflatName(SCL_INFO* sclInfo, const char* doType, const c
 		for (pDaList= pDoType->daHead; pDaList != NULL; pDaList = (SCL_DA *)list_get_next(pDoType->daHead, pDaList)) {
 			if (strcasecmp(pDaList->name, daName[0]) == 0) {
 				pBdaType = sclGetBdaTypeByDaTypeId(sclInfo, pDaList->type, daName[1]);
+				if (!pBdaType) {
+					SLOG_ERROR("sclGetBdaTypeByDaTypeId not found doType%s daName=%s pDaList->type=%s daName[1]=%s", 
+							doType, pDaList->name, pBdaType, daName[1]);
+					return -3;
+				}
 				//递归寻找
 				if (count > 2) {
-					ST_UINT8 i;
 					for (i = 2; i < count; i++){
-						pBdaType = sclGetBdaTypeByDaTypeId(sclInfo, pBdaType, daName[i-1]);
+						pBdaType = sclGetBdaTypeByDaTypeId(sclInfo, pBdaType, daName[i]);
 						if (!pBdaType) {
-							SLOG_ERROR("sclGetBdaTypeByDaTypeId not found %s name %s", pBdaType, daName[i-1]);
-							continue;
+							SLOG_ERROR("sclGetBdaTypeByDaTypeId not found doType %s pDaName %s pBdaType %s daName[%d]=%s count=%d", 
+								doType, pDaList->name, pBdaType, i, daName[i],count);
+							return -3;
 						}						
 					}
 				}
@@ -425,14 +489,14 @@ ST_RET sclGetDoiNameValue(SCL_INFO* sclInfo, void* database) {
 #endif	
 	SCL_IED* scl_ied;
 	for (scl_ied = sclInfo->lIEDHead; scl_ied != NULL; scl_ied = (SCL_IED *)list_get_next(sclInfo->lIEDHead, scl_ied)) {
-		SLOG_DEBUG("==============================GetLNData IED NAME: %s==============================", scl_ied->iedName);
+		userLog("==============================GetLNData IED NAME: %s==============================", scl_ied->iedName);
 		for (scl_acpoint = scl_ied->accessPointHead; scl_acpoint != NULL; scl_acpoint = (SCL_ACCESSPOINT *)list_get_next(scl_ied->accessPointHead, scl_acpoint))
 		{
 			for (scl_ld = scl_acpoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(scl_acpoint->ldHead, scl_ld)){
 				//for test
 				// if (strcasecmp(scl_ld->inst, "prot")) continue;
 				for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
-					SLOG_DEBUG("<LN VarName=\"%s\" desc=\"%s\" lnType=\"%s\" lnClass=\"%s\" prefix=\"%s\" inst=\"%s\">",
+					userLog("<LN VarName=\"%s\" desc=\"%s\" lnType=\"%s\" lnClass=\"%s\" prefix=\"%s\" inst=\"%s\">",
 					scl_ln->varName, scl_ln->desc, scl_ln->lnType, scl_ln->lnClass, scl_ln->prefix, scl_ln->inst);	
 					
 					SCL_DOI* doiList;
@@ -442,7 +506,7 @@ ST_RET sclGetDoiNameValue(SCL_INFO* sclInfo, void* database) {
 					for (doiList = scl_ln->doiHead; doiList != NULL; doiList = (SCL_DOI *)list_get_next(scl_ln->doiHead, doiList)) {
 						ST_CHAR* doiType = sclGetDOTypeByDoName(sclInfo, scl_ln->lnType, doiList->name);
 
-						SLOG_DEBUG("  <DOI name=\"%s\" desc=\"%s\" type=\"%s\">", doiList->name, doiList->desc, doiType);
+						userLog("  <DOI name=\"%s\" desc=\"%s\" type=\"%s\">", doiList->name, doiList->desc, doiType);
 						SCL_SDI* pSdi;
 						SCL_DAI* pDai;
 						ST_INT rec = 0;
@@ -450,16 +514,18 @@ ST_RET sclGetDoiNameValue(SCL_INFO* sclInfo, void* database) {
 							// ST_CHAR* daTypeName = sclGetDaBySdiName(sclInfo, doType, pSdi->name);
 							if (list_get_sizeof(pSdi->sdaiHead) > 0) {
 								SCL_DAI* pSDAi;
+								ST_CHAR* dabType;
+								ST_CHAR* fc;								
+
 								for (pSDAi = pSdi->sdaiHead; pSDAi != NULL; pSDAi = (SCL_DAI *)list_get_next(pSdi->sdaiHead, pSDAi)) {
-									ST_CHAR* dabType;
-									ST_CHAR* fc;
 									if ((rec =  sclGetDaiTypeByDaiflatName(sclInfo, doiType, pSDAi->flattened, &dabType, &fc)) !=0){
 										SLOG_ERROR ("sclGetDaiTypeByDaiflatName err %d", rec);
+										SLOG_DEBUG ("scl_ln->varName=%s doiName=%s doitype=%s sdiName=%s pSDAi->flattened=%s", scl_ln->varName, doiList->name, doiType, pSdi->name, pSDAi->flattened);
 										continue;
 									}
 									ST_CHAR refStr[100 + 1] = {0};
 									snprintf (refStr, 100, "%s%s/%s$%s$%s$%s", scl_ied->iedName, scl_ld->inst, scl_ln->varName, fc, doiList->name, pSDAi->flattened);
-									SLOG_DEBUG ("    <DAI ref=\"%s\" fc=\"%s\" sAddr=\"%s\" value=\"%s\" daType=\"%s\"/>", 
+									userLog ("    <DAI ref=\"%s\" fc=\"%s\" sAddr=\"%s\" value=\"%s\" daType=\"%s\"/>", 
 												refStr, fc, pSDAi->sAddr, pSDAi->Val, dabType);
 #ifdef DB_SQLITE3									
 									sqlite3_reset(stmt);
@@ -491,11 +557,12 @@ ST_RET sclGetDoiNameValue(SCL_INFO* sclInfo, void* database) {
 							SCL_DA* daList;
 							if ((rec = sclGetDaListByDAName (sclInfo, doiType, pDai->name, &daList)) !=0){
 								SLOG_ERROR ("sclGetDaListByDAName err %d", rec);
+								SLOG_DEBUG ("scl_ln->varName=%s doiName=%s doitype=%s daName=%s", scl_ln->varName, pDai->name, doiType, pDai->name);
 								continue;
 							}
 							ST_CHAR refStr[100 + 1] = {0};
 							snprintf (refStr, 100, "%s%s/%s$%s$%s$%s", scl_ied->iedName, scl_ld->inst, scl_ln->varName, daList->fc, doiList->name, pDai->flattened);							
-							SLOG_DEBUG ("    <DAI ref=\"%s\" fc=\"%s\" sAddr=\"%s\" value=\"%s\" daType=\"%s\"/>", 
+							userLog ("    <DAI ref=\"%s\" fc=\"%s\" sAddr=\"%s\" value=\"%s\" daType=\"%s\"/>", 
 										refStr, daList->fc, pDai->sAddr, pDai->Val, daList->bType);
 #ifdef DB_SQLITE3			
 							//"insert into iec_ied_data(iedname,LD,LN,FC,DOI,DAI,ref,sAddr,val,val_type,val_size,ref_type,ref_size) values (?,?,?,?,?,?,?,?,?,?,'0',0,-255)"						
@@ -575,9 +642,11 @@ void scdGetIedStructInfo(SCL_INFO* sclInfo, void* database) {
 	}	
 #endif	
 	SCL_IED* ied;
+	
 	for(ied = sclInfo->lIEDHead; ied != NULL; ied = (SCL_IED*)list_get_next (sclInfo->lIEDHead, ied))
 	{
-		SLOG_DEBUG ("<IED name=\"%s\" type=\"%s\" desc=\"%s\" manufacturer=\"%s\" configVersion=\"%s\" iedCrc=\"%s\">", 
+		userLog("==============================GetDataset IED Struct: %s==============================", ied->iedName);
+		userLog ("<IED name=\"%s\" type=\"%s\" desc=\"%s\" manufacturer=\"%s\" configVersion=\"%s\" iedCrc=\"%s\">", 
 					ied->iedName, ied->iedType, ied->desc, ied->manufacturer, ied->configVersion, ied->iedDeviceCrc);
 #ifdef DB_SQLITE3		
 		sqlite3_reset(stmt1);
@@ -624,7 +693,7 @@ void scdGetCommuncationInfo(SCL_INFO* sclInfo, void* database) {
 
 	sqlite3_exec(db,"begin;",0,0,0);
 	sqlite3_stmt *stmt1, *stmt2, *stmt3; 
-	strcpy(tabsql, "insert into iec_ied_commu(iedname,substation,apname,ipAddress,ipSubNet) values (?,?,?,?,?)");
+	strcpy(tabsql, "insert into iec_ied_commu(iedname,substation,apname,ipAddress,ipSubNet,ipGateway) values (?,?,?,?,?,?)");
 	if (SQLITE_OK != sqlite3_prepare_v2(db,tabsql,strlen(tabsql),&stmt1,0)) {
 		SLOG_ERROR("sqlite3_prepare_v2 %s error", sqlite3_errmsg(db));
 		if (stmt1) sqlite3_finalize(stmt1);
@@ -652,26 +721,27 @@ void scdGetCommuncationInfo(SCL_INFO* sclInfo, void* database) {
 	SCL_GSE* gse;
 	SCL_PORT* port;
 	int subNetworkid = 1;
+	userLog("==============================GetDataset IED Communcation==============================");
 	for(net = sclInfo->subnetHead; net!=NULL; net = (SCL_SUBNET*)list_get_next (sclInfo->subnetHead, net))
 	{
-		SLOG_DEBUG ("<SubNetwork name=\"%s\" type=\"%s\", desc=\"%s\">",net->name, net->type, net->desc == NULL ? "" : net->desc);
+		userLog ("<SubNetwork name=\"%s\" type=\"%s\", desc=\"%s\">",net->name, net->type, net->desc == NULL ? "" : net->desc);
 		// printf ("net->capHead size %d\n", list_get_sizeof(net->capHead));
 		for ( cap= net->capHead; cap != NULL; cap = (SCL_CAP*)list_get_next(net->capHead, cap) )
 		{
-			SLOG_DEBUG ("  <ConnectedAP iedName=\"%s\" apName=\"%s\">", cap->iedName, cap->apName);
+			userLog ("  <ConnectedAP iedName=\"%s\" apName=\"%s\">", cap->iedName, cap->apName);
 			SCL_ADDRESS* addr;
 			if( list_get_sizeof(cap->addrHead) ) {
-				for (addr = cap->addrHead; addr != NULL; addr = (SCL_ADDRESS *)list_get_next(cap->addrHead, addr) ){
-					SLOG_DEBUG("IPAddress: %s IPSUBNET:%s", addr->IP, addr->IPSUBNET);					
+				for (addr = cap->addrHead; addr != NULL; addr = (SCL_ADDRESS *)list_get_next(cap->addrHead, addr) ){		
 					if (strlen(addr->IP)) {
-						SLOG_DEBUG ("	IP Address %s SubNet %s",addr->IP, addr->IPSUBNET);
+						userLog("    IPAddress: %s IPSUBNET:%s IPGATEWAY:%s", addr->IP, addr->IPSUBNET, addr->IPGATEWAY);
 #ifdef DB_SQLITE3						
 						sqlite3_reset(stmt1);
 						sqlite3_bind_text(stmt1, 1, cap->iedName, strlen(cap->iedName), NULL);
 						sqlite3_bind_text(stmt1, 2, net->name, strlen(net->name), NULL);			
 						sqlite3_bind_text(stmt1, 3, cap->apName, strlen(cap->apName), NULL);						
 						sqlite3_bind_text(stmt1, 4, addr->IP, strlen(addr->IP), NULL);
-						sqlite3_bind_text(stmt1, 5, addr->IPSUBNET, strlen(addr->IPSUBNET), NULL);	
+						sqlite3_bind_text(stmt1, 5, addr->IPSUBNET, strlen(addr->IPSUBNET), NULL);
+						sqlite3_bind_text(stmt1, 6, addr->IPGATEWAY, strlen(addr->IPGATEWAY), NULL);	
 						sqlite3_step(stmt1);
 #endif						
 					}
@@ -683,14 +753,14 @@ void scdGetCommuncationInfo(SCL_INFO* sclInfo, void* database) {
 				sqlite3_bind_text(stmt1, 1, cap->iedName, strlen(cap->iedName), NULL);
 				sqlite3_bind_text(stmt1, 2, net->name, strlen(net->name), NULL);			
 				sqlite3_bind_text(stmt1, 3, cap->apName, strlen(cap->apName), NULL);	
-				sqlite3_bind_text(stmt1, 4, "", 0, NULL);
-				sqlite3_bind_text(stmt1, 5, "", 0, NULL);							
+				// sqlite3_bind_text(stmt1, 4, "", 0, NULL);
+				// sqlite3_bind_text(stmt1, 5, "", 0, NULL);							
 				sqlite3_step(stmt1); 
 			}
 #endif			
 			for (gse = cap->gseHead; gse != NULL; gse = (SCL_GSE *)list_get_next(cap->gseHead, gse)) {
 				
-				SLOG_DEBUG("	GSE: ldInst: %s cbName %s MAC %s APPID %d VLAN %d VLANPORI %d min %d max %d", 
+				userLog("	GSE: ldInst: %s cbName %s MAC %s APPID %04x VLAN %d VLANPORI %d min %d max %d", 
 							gse->ldInst, gse->cbName, 
 							gse->MAC,  gse->APPID,  gse->VLANID,  gse->VLANPRI, gse->minTime, gse->maxTime);
 #ifdef DB_SQLITE3							
@@ -706,7 +776,7 @@ void scdGetCommuncationInfo(SCL_INFO* sclInfo, void* database) {
 #endif				
 			}
 			for (port = cap->portHead; port != NULL; port = (SCL_PORT *)list_get_next(cap->portHead, port)) {
-				SLOG_DEBUG("	Port: %s %s %s %s", port->portValue, port->portPlug, port->portType, port->portCable);
+				userLog("	Port: %s %s %s %s", port->portValue, port->portPlug, port->portType, port->portCable);
 #ifdef DB_SQLITE3				
 				sqlite3_reset(stmt3);
 				sqlite3_bind_int(stmt3, 1,subNetworkid);
@@ -778,26 +848,26 @@ ST_RET scdGetDataSetInfo(SCL_INFO* sclInfo, void* database) {
 
 	SCL_IED* scl_ied;
 	for (scl_ied = sclInfo->lIEDHead; scl_ied != NULL; scl_ied = (SCL_IED *)list_get_next(sclInfo->lIEDHead, scl_ied)) {
-		SLOG_DEBUG("==============================GetDataset IED NAME: %s==============================", scl_ied->iedName);
+		userLog("==============================GetDataset IED NAME: %s==============================", scl_ied->iedName);
 		for (scl_acpoint = scl_ied->accessPointHead; scl_acpoint != NULL; scl_acpoint = (SCL_ACCESSPOINT *)list_get_next(scl_ied->accessPointHead, scl_acpoint))
 		{
-			SLOG_DEBUG("<AccessPoint name=\"%s\">", scl_acpoint->name);
+			userLog("<AccessPoint name=\"%s\">", scl_acpoint->name);
 			for (scl_ld = scl_acpoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(scl_acpoint->ldHead, scl_ld)){
-				SLOG_DEBUG ("<LDevice inst=\"%s\" desc=\"%s\">", scl_ld->inst, scl_ld->desc);
+				userLog (" <LDevice inst=\"%s\" desc=\"%s\">", scl_ld->inst, scl_ld->desc);
 				for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
 					if (strcasecmp(scl_ln->varName, "LLN0")) continue; 	//非LLN0跳过
 
 					SCL_DATASET* ds;
 					// SCL_DATASET* pDataSet;
-					SLOG_DEBUG ("<LN0 desc=\"%s\" lnType=\"%s\" lnClass=\"%s\" inst="">", scl_ln->desc, scl_ln->lnType, scl_ln->lnClass);
+					userLog ("   <LN0 desc=\"%s\" lnType=\"%s\" lnClass=\"%s\" inst="">", scl_ln->desc, scl_ln->lnType, scl_ln->lnClass);
 
 					for(ds = scl_ln->datasetHead; ds != NULL; ds = (SCL_DATASET *)list_get_next(scl_ln->datasetHead, ds))
 					{
 						SCL_FCDA* fcda;
-						SLOG_DEBUG("<DataSet name=\"%s\" Desc=\"%s\">", ds->name, ds->desc); //
+						userLog("    <DataSet name=\"%s\" Desc=\"%s\">", ds->name, ds->desc); //
 						for(fcda = ds->fcdaHead; fcda != NULL; fcda = (SCL_FCDA*)list_get_next(ds->fcdaHead, fcda)) 
 						{
-							SLOG_DEBUG ("<FCDA ldInst=\"%s\" prefix=\"%s\" lnClass=\"%s\" doName=\"%s\" lnInst=\"%s\" daName=\"%s\" fc=\"%s\" Ref=\"%s\" sAddr=\"%s\" desc=\"%s\"/>",
+							userLog ("      <FCDA ldInst=\"%s\" prefix=\"%s\" lnClass=\"%s\" doName=\"%s\" lnInst=\"%s\" daName=\"%s\" fc=\"%s\" Ref=\"%s\" sAddr=\"%s\" desc=\"%s\"/>",
 									fcda->ldInst, 
 									fcda->prefix, 
 									fcda->lnClass, 
@@ -867,7 +937,7 @@ ST_RET scdGetDataSetInfo(SCL_INFO* sclInfo, void* database) {
 ST_RET sclGetUrcbElements(SCL_INFO* sclInfo, void* database) {
 	if (!sclInfo) {
 		SLOG_ERROR("Empty sclInfo");
-		return -1;		
+		return -1;
 	}
 	SCL_ACCESSPOINT *scl_acpoint;
 	SCL_LD *scl_ld;
@@ -900,7 +970,7 @@ ST_RET sclGetUrcbElements(SCL_INFO* sclInfo, void* database) {
 #endif	
 	SCL_IED* scl_ied;
 	for (scl_ied = sclInfo->lIEDHead; scl_ied != NULL; scl_ied = (SCL_IED *)list_get_next(sclInfo->lIEDHead, scl_ied)) {
-		SLOG_DEBUG("==============================GetUrcb IED NAME: %s==============================", scl_ied->iedName);
+		userLog("==============================GetUrcb IED NAME: %s==============================", scl_ied->iedName);
 		for (scl_acpoint = scl_ied->accessPointHead; scl_acpoint != NULL; scl_acpoint = (SCL_ACCESSPOINT *)list_get_next(scl_ied->accessPointHead, scl_acpoint)) {
 			for (scl_ld = scl_acpoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(scl_acpoint->ldHead, scl_ld)){
 				for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
@@ -914,16 +984,18 @@ ST_RET sclGetUrcbElements(SCL_INFO* sclInfo, void* database) {
 						ST_UINT8 i;
 						for (i = 1; i <= rcb->maxClient; i++){
 							ST_CHAR rcbName[MAX_IDENT_LEN+1] = {0};
-							sprintf(rcbName, "%s/LLN0$RP$%s%d", scl_ied->iedName,rcb->rptID,i);
-							SLOG_DEBUG("Urcb rptName=\"%s\" datSet=\"%s\" intgPd=\"%d\" rptID=\"%s\" confRev=\"%d\" buffered=\"%d\" bufTime=\"%d\" TrgOps=\"%d\" OptFlds=\"%d\">", 
-								rcbName,  rcb->datSet,  rcb->intgPd, rcb->rptID, rcb->confRev, rcb->buffered, rcb->bufTime, rcb->TrgOps[0], (rcb->OptFlds[1] << 8) + rcb->OptFlds[0]);
+							ST_CHAR rcbDataSet[MAX_IDENT_LEN+1] = {0};
+							sprintf(rcbName, "%s/LLN0$RP$%s%d", scl_ld->domName,rcb->rptID,i);
+							sprintf(rcbDataSet, "%s/LLN0$%s", scl_ld->domName,rcb->datSet);
+							userLog("	Urcb rptName=\"%s\" datSet=\"%s\" intgPd=\"%d\" rptID=\"%s\" confRev=\"%d\" buffered=\"%d\" bufTime=\"%d\" TrgOps=\"%d\" OptFlds=\"%d\">", 
+								rcbName,  rcbDataSet,  rcb->intgPd, rcb->rptID, rcb->confRev, rcb->buffered, rcb->bufTime, rcb->TrgOps[0], (rcb->OptFlds[1] << 8) + rcb->OptFlds[0]);
 	#ifdef DB_SQLITE3	
 
 							sqlite3_reset(stmt);
 							sqlite3_bind_text(stmt, 1, scl_ied->iedName, strlen(scl_ied->iedName), NULL);
 							sqlite3_bind_text(stmt, 2, rcbName, strlen(rcbName), NULL);
 							sqlite3_bind_text(stmt, 3, rcb->rptID, strlen(rcb->rptID), NULL);
-							sqlite3_bind_text(stmt, 4, rcb->datSet, strlen(rcb->datSet), NULL);
+							sqlite3_bind_text(stmt, 4, rcbDataSet, strlen(rcbDataSet), NULL);
 							sqlite3_bind_int(stmt, 5, rcb->confRev);
 							sqlite3_bind_int(stmt, 6, rcb->TrgOps[0]);
 							sqlite3_bind_int(stmt, 7, (rcb->OptFlds[1] << 8) + rcb->OptFlds[0]);
@@ -1006,10 +1078,9 @@ ST_RET sclGetBrcbElements(SCL_INFO* sclInfo, void* database) {
 #endif	
 	SCL_IED* scl_ied;
 	for (scl_ied = sclInfo->lIEDHead; scl_ied != NULL; scl_ied = (SCL_IED *)list_get_next(sclInfo->lIEDHead, scl_ied)) {
-		SLOG_DEBUG("==============================GetBrcb IED NAME: %s==============================", scl_ied->iedName);
+		userLog("==============================GetBrcb IED NAME: %s==============================", scl_ied->iedName);
 		for (scl_acpoint = scl_ied->accessPointHead; scl_acpoint != NULL; scl_acpoint = (SCL_ACCESSPOINT *)list_get_next(scl_ied->accessPointHead, scl_acpoint)) {
 			for (scl_ld = scl_acpoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(scl_acpoint->ldHead, scl_ld)){
-				
 				for (scl_ln = scl_ld->lnHead; scl_ln != NULL; scl_ln = (SCL_LN *)list_get_next(scl_ld->lnHead, scl_ln)) {
 					if (strcasecmp(scl_ln->varName, "LLN0")) continue; 	//非LLN0跳过
 					SCL_RCB* rcb;
@@ -1021,16 +1092,18 @@ ST_RET sclGetBrcbElements(SCL_INFO* sclInfo, void* database) {
 						ST_UINT8 i;
 						for (i = 1; i <= rcb->maxClient; i++){
 							ST_CHAR rcbName[MAX_IDENT_LEN+1] = {0};
-							sprintf(rcbName, "%s/LLN0$RP$%s%d", scl_ied->iedName,rcb->rptID,i);
-							SLOG_DEBUG ("BRCB name=\"%s\" datSet=\"%s\" intgPd=\"%d\" rptID=\"%s\" confRev=\"%d\" buffered=\"%d\" bufTime=\"%d\" TrgOps=\"%d\" OptFlds=\"%d\">", 
-							rcbName,  rcb->datSet,  rcb->intgPd, rcb->rptID, rcb->confRev, rcb->buffered, rcb->bufTime, rcb->TrgOps[0], (rcb->OptFlds[1] << 8) + rcb->OptFlds[0]);
+							ST_CHAR rcbDataSet[MAX_IDENT_LEN+1] = {0};
+							sprintf(rcbName, "%s/LLN0$RP$%s%d", scl_ld->domName,rcb->rptID,i);
+							sprintf(rcbDataSet, "%s/LLN0$%s", scl_ld->domName,rcb->datSet);
+							userLog ("	BRCB name=\"%s\" datSet=\"%s\" intgPd=\"%d\" rptID=\"%s\" confRev=\"%d\" buffered=\"%d\" bufTime=\"%d\" TrgOps=\"%d\" OptFlds=\"%d\">", 
+							rcbName,  rcbDataSet,  rcb->intgPd, rcb->rptID, rcb->confRev, rcb->buffered, rcb->bufTime, rcb->TrgOps[0], (rcb->OptFlds[1] << 8) + rcb->OptFlds[0]);
 	#ifdef DB_SQLITE3	
 
 							sqlite3_reset(stmt);
 							// sqlite3_bind_text(stmt, 1, sclInfo->lIEDHead->iedName, strlen(sclInfo->lIEDHead->iedName), NULL);
 							sqlite3_bind_text(stmt, 1, rcbName, strlen(rcbName), NULL);
 							sqlite3_bind_text(stmt, 2, rcb->rptID, strlen(rcb->rptID), NULL);
-							sqlite3_bind_text(stmt, 3, rcb->datSet, strlen(rcb->datSet), NULL);
+							sqlite3_bind_text(stmt, 3, rcbDataSet, strlen(rcbDataSet), NULL);
 							sqlite3_bind_int(stmt, 4, rcb->bufTime);
 							sqlite3_bind_int(stmt, 5, rcb->confRev);
 							sqlite3_bind_int(stmt, 6, rcb->TrgOps[0]);
@@ -1106,7 +1179,7 @@ ST_RET sclGetLogControlBlock(SCL_INFO* sclInfo, void* database) {
 	ST_CHAR lcbDataSet[128] = {0};
 	SCL_IED* scl_ied;
 	for (scl_ied = sclInfo->lIEDHead; scl_ied != NULL; scl_ied = (SCL_IED *)list_get_next(sclInfo->lIEDHead, scl_ied)) {		
-		SLOG_DEBUG("==============================GetLogControlBlock IED NAME: %s==============================", scl_ied->iedName);
+		userLog("==============================GetLogControlBlock IED NAME: %s==============================", scl_ied->iedName);
 		for (scl_acpoint = scl_ied->accessPointHead; scl_acpoint != NULL; scl_acpoint = (SCL_ACCESSPOINT *)list_get_next(scl_ied->accessPointHead, scl_acpoint)) {
 			for (scl_ld = scl_acpoint->ldHead; scl_ld != NULL; scl_ld = (SCL_LD *)list_get_next(scl_acpoint->ldHead, scl_ld)){
 				memset(lcbRef, 0, sizeof(lcbRef));
@@ -1129,7 +1202,7 @@ ST_RET sclGetLogControlBlock(SCL_INFO* sclInfo, void* database) {
 					SCL_LCB* lcb;
 					for (lcb = scl_ln->lcbHead; lcb != NULL; lcb = (SCL_LCB *)list_get_next(scl_ln->lcbHead, lcb)) {
 						strcat(lcbDataSet, lcb->datSet);
-						SLOG_DEBUG ("   <LogControl name=\"%s\" desc=\"%s\" datSet=\"%s\" intgPd=\"%d\" TrgOps=\"0x%x\" logEna=\"%d\">", 
+						userLog ("   <LogControl name=\"%s\" desc=\"%s\" datSet=\"%s\" intgPd=\"%d\" TrgOps=\"0x%x\" logEna=\"%d\">", 
 							lcbRef, lcb->desc,  lcbDataSet, lcb->intgPd, lcb->TrgOps[0], lcb->logEna);
 						
 						// 	scl_rptCtlget(lcb->TrgOps,"dchg"), scl_rptCtlget(lcb->TrgOps,"qchg"), scl_rptCtlget(lcb->TrgOps,"dupd"), scl_rptCtlget(lcb->TrgOps,"period"));

@@ -1,6 +1,6 @@
 /*
  * @Date: 2020-12-07 14:26
- * @LastEditTime: 2020-12-22 19:22
+ * @LastEditTime: 2020-12-25 08:36
  * @LastEditors: tangkai3
  * @Description: 
  */
@@ -39,8 +39,9 @@ int main(int argc, char* argv[])
 	}
 	
 	gettimeofday(&end, NULL);		
-	int cost = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
-	printf("Parse scl file %s Result %s cost time %d ms\n", xmlFileName, rc == 0 ? "Success": "Failed" , cost/1000);
+
+	long cost = 1000 *(end.tv_sec - start.tv_sec) + ((end.tv_usec - start.tv_usec) / 1000);
+	printf("Parse scl file %s Result %s cost time %ld ms\n", xmlFileName, rc == 0 ? "Success": "Failed" , cost);
 	
 #ifdef DB_SQLITE3
 	sqlite3* db;
