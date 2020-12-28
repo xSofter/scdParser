@@ -60,11 +60,13 @@
 extern "C" {
 #endif
 
-#define MAX_IDENT_LEN 128
+#define MAX_IDENT_LEN 64
+#define MAX_IDENT_LEN_32 32
 #define MVL61850_MAX_RPTID_LEN 64
 #define CLNP_MAX_LEN_MAC 12	/* 采用12字节显示,010CCD010000 */
 #define MAX_CRC32_LEN 8
 #define MAX_VALKIND_LEN	4	/* Spec, Conf, RO, or Set		*/
+#define FCDA_PREFIX_LEN 6
 #define MAX_CDC_LEN	50	/* SPS, DPS, etc. (CURVE is longest	*/
 	/* predefined CDC but user may define others)*/
 #define MAX_FC_LEN	2	/* ST, MX, etc.				*/
@@ -319,7 +321,7 @@ extern "C" {
 		struct scl_gse *next;		/* CRITICAL: DON'T MOVE.	*/
 		struct scl_gse *prev;		/* CRITICAL: DON'T MOVE.	*/
 		ST_CHAR ldInst[MAX_IDENT_LEN+1];
-		ST_CHAR cbName[MAX_IDENT_LEN+1];
+		ST_CHAR cbName[MAX_IDENT_LEN_32+1];
 		ST_CHAR MAC[CLNP_MAX_LEN_MAC+1];	/* Multicast MAC address like 010CCD010000*/
 		ST_UINT APPID;
 		ST_UINT VLANPRI;
@@ -336,7 +338,7 @@ extern "C" {
 		struct scl_smv *next;		/* CRITICAL: DON'T MOVE.	*/
 		struct scl_smv *prev;		/* CRITICAL: DON'T MOVE.	*/
 		ST_CHAR ldInst[MAX_IDENT_LEN+1];
-		ST_CHAR cbName[MAX_IDENT_LEN+1];
+		ST_CHAR cbName[MAX_IDENT_LEN_32+1];
 		ST_CHAR MAC[CLNP_MAX_LEN_MAC+1];	/* Multicast MAC address	*/
 		ST_UINT APPID;
 		ST_UINT VLANPRI;
@@ -402,17 +404,17 @@ extern "C" {
 	typedef struct
 	{
 		DBL_LNK l;
-		ST_CHAR domName [MAX_IDENT_LEN+1];	/* domain name (constructed) IED/ldInst/	*/
-		ST_CHAR ldInst  [MAX_IDENT_LEN+1];
-		ST_CHAR prefix  [MAX_IDENT_LEN+1];
-		ST_CHAR lnInst  [MAX_IDENT_LEN+1];
-		ST_CHAR lnClass [MAX_IDENT_LEN+1];
-		ST_CHAR doName  [MAX_IDENT_LEN+1];
-		ST_CHAR daName  [MAX_IDENT_LEN+1];
+		ST_CHAR domName [MAX_FLAT_LEN+1];	/* domain name (constructed) IED/ldInst/	*/
+		ST_CHAR ldInst  [MAX_IDENT_LEN_32+1];
+		ST_CHAR prefix  [MAX_IDENT_LEN_32+1];
+		ST_CHAR lnInst  [MAX_IDENT_LEN_32+1]; 
+		ST_CHAR lnClass [MAX_IDENT_LEN_32+1];
+		ST_CHAR doName  [MAX_IDENT_LEN_32+1];
+		ST_CHAR daName  [MAX_IDENT_LEN_32+1];
 		ST_CHAR fc      [MAX_FC_LEN+1];	/* ST, MX, etc.			*/
-		ST_CHAR doRefsAddr [MAX_IDENT_LEN+1];
-		ST_CHAR doRefDesc  [MAX_IDENT_LEN+1];
-		ST_CHAR lnRefType  [MAX_IDENT_LEN+1];
+		ST_CHAR doRefsAddr [MAX_FLAT_LEN+1];
+		ST_CHAR doRefDesc  [MAX_FLAT_LEN+1];
+		ST_CHAR lnRefType  [MAX_FLAT_LEN+1];
 	} SCL_FCDA;
 
 	/* "scl_dai_add" allocates this struct, fills it in,			*/
@@ -435,7 +437,7 @@ extern "C" {
 		ST_CHAR *Val;				/* attribute value text		*/
 		/* allocate appropriate size buffer*/
 		ST_UINT sGroup;			/* optional Setting Group Number*/
-		ST_CHAR sAddr[MAX_IDENT_LEN+1];	/* from DAI			*/
+		ST_CHAR sAddr[MAX_FLAT_LEN+1];	/* from DAI			*/
 		ST_CHAR valKind[MAX_VALKIND_LEN+1];	/* from DAI			*/
 	} SCL_DAI;
 
@@ -452,7 +454,7 @@ extern "C" {
 	typedef struct
 	{
 		DBL_LNK l;
-		ST_CHAR name[MAX_IDENT_LEN+1];	/*  name		*/
+		ST_CHAR name[MAX_IDENT_LEN_32+1];	/*  name		*/
 		ST_CHAR *desc;			/* description (optional)*/
 		ST_UINT idx;
 		SCL_SDI *sdiHead;
@@ -464,7 +466,7 @@ extern "C" {
 	typedef struct
 	{
 		DBL_LNK l;
-		ST_CHAR name[MAX_IDENT_LEN+1];	/* dataset name		*/
+		ST_CHAR name[MAX_IDENT_LEN_32+1];	/* dataset name		*/
 		ST_CHAR *desc;			/* description (optional)*/
 		/* may be long so allocate if present*/
 		SCL_FCDA *fcdaHead;			/* head of list of FCDA	*/
@@ -475,12 +477,12 @@ extern "C" {
 	typedef struct
 	{
 		DBL_LNK l;
-		ST_CHAR name[MAX_IDENT_LEN+1];
+		ST_CHAR name[MAX_IDENT_LEN_32+1];
 		ST_CHAR *desc;		/* description (optional)*/
 		/* may be long so allocate if present*/
-		ST_CHAR datSet[MAX_IDENT_LEN+1];
+		ST_CHAR datSet[MAX_IDENT_LEN_32+1];
 		ST_UINT intgPd;
-		ST_CHAR rptID[MAX_IDENT_LEN+1];
+		ST_CHAR rptID[MAX_FLAT_LEN+1];
 		ST_UINT confRev;
 		ST_BOOLEAN buffered;		/* TRUE if this is buffered RCB	*/
 		ST_UINT bufTime;
@@ -534,10 +536,10 @@ extern "C" {
 	typedef struct
 	{
 		DBL_LNK l;
-		ST_CHAR name[MAX_IDENT_LEN+1];
+		ST_CHAR name[MAX_IDENT_LEN_32+1];	//logName length 32
 		ST_CHAR *desc;		/* description (optional)*/
 		/* may be long so allocate if present*/
-		ST_CHAR datSet[MAX_IDENT_LEN+1];
+		ST_CHAR datSet[MAX_IDENT_LEN_32+1];	//dataSet length 32
 		ST_UINT intgPd;
 		ST_CHAR logName[MAX_IDENT_LEN+1];
 		ST_BOOLEAN logEna;
@@ -565,7 +567,7 @@ extern "C" {
 		/* GoCBRef or GsCBRef		*/
 		ST_CHAR *desc;			/* description (optional)*/
 		/* may be long so allocate if present*/
-		ST_CHAR datSet[MAX_IDENT_LEN+1];	/* for GOOSE only	*/
+		ST_CHAR datSet[MAX_IDENT_LEN_32+1];	/* for GOOSE only	*/
 		/* used to construct GOOSE DatSet*/
 		ST_UINT confRev;			/* for GOOSE only	*/
 		ST_BOOLEAN isGoose;	/* SD_TRUE if "GOOSE", SD_FALSE if "GSSE"*/
@@ -588,7 +590,7 @@ extern "C" {
 		ST_CHAR name[MAX_IDENT_LEN+1];
 		ST_CHAR *desc;		/* description (optional)*/
 		/* may be long so allocate if present*/
-		ST_CHAR datSet[MAX_IDENT_LEN+1];
+		ST_CHAR datSet[MAX_IDENT_LEN_32+1];
 		ST_CHAR smvID[MAX_IDENT_LEN+1];
 		ST_UINT smpRate;
 		ST_UINT nofASDU;
@@ -621,7 +623,7 @@ extern "C" {
 	typedef struct
 	{
 		DBL_LNK l;
-		ST_CHAR varName[MAX_IDENT_LEN+1];	/* variable name (constructed)	*/
+		ST_CHAR varName[MAX_FLAT_LEN+1];	/* variable name (constructed)	*/
 		ST_CHAR *desc;			/* description (optional)*/
 		/* may be long so allocate if present*/
 		ST_CHAR lnType[MAX_IDENT_LEN+1];	/* LN Type name		*/
@@ -798,7 +800,7 @@ extern "C" {
 	{
 		DBL_LNK l;
 		ST_INT ord;				/* ord attribute	*/
-		ST_CHAR EnumVal[MAX_IDENT_LEN+1];	/* EnumVal element		*/
+		ST_CHAR EnumVal[MAX_FLAT_LEN+1];	/* EnumVal element		*/
 		/* TRUNCATED if longer than buffer	*/
 	} SCL_ENUMVAL;
 	typedef struct

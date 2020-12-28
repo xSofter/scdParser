@@ -1,6 +1,6 @@
 /*
  * @Date: 2020-12-07 09:25
- * @LastEditTime: 2020-12-25 13:52
+ * @LastEditTime: 2020-12-28 08:40
  * @LastEditors: tangkai3
  * @Description: 模块对外接口函数
  */
@@ -642,7 +642,7 @@ void scdGetIedStructInfo(SCL_INFO* sclInfo, void* database) {
 	}	
 #endif	
 	SCL_IED* ied;
-	
+	userLog("==============================Substation virtual terminal conection CRC: %s==============================", sclInfo->Header.sclCrc);
 	for(ied = sclInfo->lIEDHead; ied != NULL; ied = (SCL_IED*)list_get_next (sclInfo->lIEDHead, ied))
 	{
 		userLog("==============================GetDataset IED Struct: %s==============================", ied->iedName);
@@ -983,8 +983,8 @@ ST_RET sclGetUrcbElements(SCL_INFO* sclInfo, void* database) {
 						
 						ST_UINT8 i;
 						for (i = 1; i <= rcb->maxClient; i++){
-							ST_CHAR rcbName[MAX_IDENT_LEN+1] = {0};
-							ST_CHAR rcbDataSet[MAX_IDENT_LEN+1] = {0};
+							ST_CHAR rcbName[MAX_IDENT_LEN_32+1] = {0};
+							ST_CHAR rcbDataSet[MAX_IDENT_LEN_32+1] = {0};
 							sprintf(rcbName, "%s/LLN0$RP$%s%d", scl_ld->domName,rcb->rptID,i);
 							sprintf(rcbDataSet, "%s/LLN0$%s", scl_ld->domName,rcb->datSet);
 							userLog("	Urcb rptName=\"%s\" datSet=\"%s\" intgPd=\"%d\" rptID=\"%s\" confRev=\"%d\" buffered=\"%d\" bufTime=\"%d\" TrgOps=\"%d\" OptFlds=\"%d\">", 
@@ -1091,8 +1091,8 @@ ST_RET sclGetBrcbElements(SCL_INFO* sclInfo, void* database) {
 						
 						ST_UINT8 i;
 						for (i = 1; i <= rcb->maxClient; i++){
-							ST_CHAR rcbName[MAX_IDENT_LEN+1] = {0};
-							ST_CHAR rcbDataSet[MAX_IDENT_LEN+1] = {0};
+							ST_CHAR rcbName[MAX_IDENT_LEN_32+1] = {0};
+							ST_CHAR rcbDataSet[MAX_IDENT_LEN_32+1] = {0};
 							sprintf(rcbName, "%s/LLN0$RP$%s%d", scl_ld->domName,rcb->rptID,i);
 							sprintf(rcbDataSet, "%s/LLN0$%s", scl_ld->domName,rcb->datSet);
 							userLog ("	BRCB name=\"%s\" datSet=\"%s\" intgPd=\"%d\" rptID=\"%s\" confRev=\"%d\" buffered=\"%d\" bufTime=\"%d\" TrgOps=\"%d\" OptFlds=\"%d\">", 

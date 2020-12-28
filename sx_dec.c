@@ -2642,7 +2642,7 @@ ST_VOID sx_get_stVal_by_fcda(SCL_INFO *sclInfo, SCL_LD* scl_ld, SCL_FCDA* fcda) 
 			ST_CHAR* daName = sclGetDaNameByFcName(sclInfo, doType, fcda->fc);
 			if (!daName) 
 			{
-				SLOG_ERROR("Cannot find daName. lnType=%s fcda->doName:%s doType=%s fc:%s daName:%s", scl_ln->lnType, fcda->doName, doType, fcda->fc, daName);
+				SLOG_ERROR("Cannot find daName. lnType=%s fcda->doName:%s doType=%s fc:%s", scl_ln->lnType, fcda->doName, doType, fcda->fc);
 				return;
 			}
 				
@@ -2686,7 +2686,7 @@ ST_VOID sx_get_stVal_by_fcda(SCL_INFO *sclInfo, SCL_LD* scl_ld, SCL_FCDA* fcda) 
 
 				dai = sx_get_daibyName(daName, doi->daiHead);
 				if (!dai) {
-					SLOG_ERROR("Cannot found dai by daName=%s lnType=%s doName=%s doType=%s fc=%s ", daName, scl_ln->lnType, fcda->doName, doType, fcda->fc);
+					SLOG_ERROR("Cannot found dai by daName=%s lnType=%s doName=%s lnInst=%s doType=%s fc=%s ", daName, scl_ln->lnType, fcda->doName, fcda->lnInst, doType, fcda->fc);
 					return;
 				}
 

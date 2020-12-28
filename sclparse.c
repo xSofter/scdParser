@@ -797,13 +797,13 @@ static ST_VOID _Substation_CrcFun(SX_DEC_CTRL *sxDecCtrl)
 	ST_INT strLen;
 	sclDecCtrl = (SCL_DEC_CTRL *) sxDecCtrl->usr;
 	sclInfo = sclDecCtrl->sclInfo;
-	// if (sxDecCtrl->reason == SX_ELEMENT_START)
-	// {
+	if (sxDecCtrl->reason == SX_ELEMENT_END)
+	{
 		if (scl_get_attr_ptr (sxDecCtrl, "type", &typeStrValue, SCL_ATTR_OPTIONAL) == SD_SUCCESS)
 		{
 			if (strcasecmp (typeStrValue, "Substation virtual terminal conection CRC") != 0)
 			{
-				SLOG_ERROR ("Private attribute type='%s' not allowed. Assuming type desc='Substation virtual terminal conection CRC' ", typeStrValue);
+				SLOG_WARN ("Private attribute type='%s' not allowed. Assuming type desc='Substation virtual terminal conection CRC' ", typeStrValue);
 				return;
 			}
 
@@ -815,7 +815,7 @@ static ST_VOID _Substation_CrcFun(SX_DEC_CTRL *sxDecCtrl)
 				SLOG_DEBUG("Substation virtual terminal conection CRC %s strlen: %d", sclInfo->Header.sclCrc, strLen);
 			}
 		}
-	// }
+	}
 	return;
 }
 /************************************************************************/
@@ -1401,7 +1401,7 @@ static ST_VOID _AccessPoint_PrivateFun  (SX_DEC_CTRL *sxDecCtrl)
 	ST_CHAR *strOut;
 	ST_INT strLen;
 
-	if (sxDecCtrl->reason == SX_ELEMENT_START)
+	if (sxDecCtrl->reason == SX_ELEMENT_END)
 	{
 		ret = scl_get_attr_ptr (sxDecCtrl, "type", &str, required);
 		if (ret != SD_SUCCESS)
@@ -1415,7 +1415,7 @@ static ST_VOID _AccessPoint_PrivateFun  (SX_DEC_CTRL *sxDecCtrl)
 			{
 				
 				if (sclDecCtrl->sclInfo->lIEDHead != NULL) {
-					SCL_IED *ied = list_get_last(sclDecCtrl->sclInfo->lIEDHead);
+					SCL_IED *ied = list_find_last((DBL_LNK *)sclDecCtrl->sclInfo->lIEDHead);
 					if (!ied) {
 						SLOG_ERROR ("last IED pointer is NUll");
 						return;
@@ -1458,7 +1458,7 @@ static ST_VOID _AccessPoint_SEFun (SX_DEC_CTRL *sxDecCtrl)
 		//初步写个立即数12
 		if (strlen(name) > 12)
 		{
-			SLOG_ERROR("AccessPoint name= %s is illegal. 'S1' 'G1' or ...", name);
+			SLOG_WARN("AccessPoint name= %s is illegal. 'S1' 'G1' or ...", name);
 			// scl_stop_parsing (sxDecCtrl, "name", SX_REQUIRED_TAG_NOT_FOUND);
 			// return;
 		}		
